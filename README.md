@@ -50,7 +50,7 @@ Where `temporarDS` is defined into `datasources` key from application descriptor
   </thead>
   <tbody>
     <tr>
-      <td><code>fileId<code></td>
+      <td><code>fileId</code></td>
       <td>Emits the uploaded file id. The <code>id</code> represents the <code>id</code> field of inserted document in database defined in datasources.</td>
     </tr>
   </tbody>
