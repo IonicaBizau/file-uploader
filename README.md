@@ -38,3 +38,20 @@ Where `temporarDS` is defined into `datasources` key from application descriptor
   ...
 }
 ```
+
+## Events
+
+<table>
+  <thead>
+    <tr>
+      <th>Event Name</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>fileId<code></td>
+      <td>Emits the uploaded file id. The <code>id</code> represents the <code>id</code> field of inserted document in database defined in datasources.</td>
+    </tr>
+  </tbody>
+</table>
