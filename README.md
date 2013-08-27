@@ -5,7 +5,7 @@ Mono file uploader module.
 
 ## How to use?
 
-Define the `upload` from application descriptor and set the `dsUpload` parameter:
+Define the `upload` operation from application descriptor and set the `dsUpload` and `uploadDir` parameters:
 
 
 ```JSON
@@ -16,7 +16,7 @@ Define the `upload` from application descriptor and set the `dsUpload` parameter
     "upload": {
       "roles": [0],
       "params": [
-        { "dsUpload": "temporarDS" }
+        { "dsUpload": "temporarDS", "uploadDir": "public/uploads" }
       ]
     }
   }
