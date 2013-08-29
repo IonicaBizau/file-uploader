@@ -62,6 +62,6 @@ The module emits the following events:
     <tbody>
         <td><pre>fileUploaded</pre></td>
         <td>It is emited when the file is uploaded</td>
-        <td>uploaded file <pre>id</pre>, <pre>path</pre> or the entire object. This can be set in the module upload operation parameters.</td>
+        <td>uploaded file <code>id</code>, <code>path</code> or the entire object. This can be set in the module upload operation parameters.</td>
     </tbody>
 </table>
