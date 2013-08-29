@@ -21,8 +21,6 @@ exports.upload = function (link) {
 
     getCollection(link.params.dsUpload, function (err, collection) {
 
-        console.log("got col");
-
         if (err) { return link.send(400, err); }
 
         var docToInsert = {
@@ -39,7 +37,20 @@ exports.upload = function (link) {
             fs.rename(uploadedFilePath, newFilePath, function (err) {
                 if (err) { return link.send(400, err); }
 
-                link.send(200, doc.id);
+                var arg;
+                switch (link.params.emitArgument) {
+                    case "object":
+                        arg = doc;
+                        break;
+                    case "path":
+                        arg = doc.filePath;
+                        break;
+                    default:
+                        arg = doc.id;
+                        break;
+                }
+
+                link.send(200, arg);
             });
         });
     });
