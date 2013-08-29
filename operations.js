@@ -26,9 +26,11 @@ exports.upload = function (link) {
         var docToInsert = {
             fileName: link.files.file.name,
             extension: fileExt,
-            filePath: newFilePath,
+            absoluteFilePath: newFilePath,
             id: generatedId
         };
+
+        docToInsert.filePath = link.params.uploadDir + "/" + docToInsert.fileName;
 
         collection.insert(docToInsert, function (err, doc) {
             if (err) { return link.send(400, err); }
@@ -46,7 +48,12 @@ exports.upload = function (link) {
                         arg = doc.filePath;
                         break;
                     default:
-                        arg = doc.id;
+                        var emitArg = link.params.emitArgument;
+                        if (typeof emitArg === "object" && emitArg.type === "custom") {
+                            arg = doc[emitArg.value];
+                        } else {
+                            arg = doc.id;
+                        }
                         break;
                 }
 

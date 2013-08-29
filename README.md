@@ -9,7 +9,7 @@ The most important parameters are set in the module upload operation `params` ar
 
  - `uploadDir`: path to the directory where the file will be uploaded (**required**)
  - `dsUpload`: datasource (**required**)
- - `emitArgument`: sets the parameter that will be emited by module in `fileUploaded` event. It can take the following values: `id`, `path`, `object`
+ - `emitArgument`: sets the parameter that will be emited by module in `fileUploaded` event. It can take the following values: `id`, `path`, `object` or an object: `{"type": "custom", "value": "docKey"}`
 
 ### Example of configuration
 
