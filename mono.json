@@ -4,8 +4,8 @@
     "name": "file-uploader",
     "dependencies": [
         "/main.js",
-        "github/jillix/bind/v0.1.3",
-        "github/jillix/events/v0.1.3",
+        "github/jillix/bind/v0.1.5",
+        "github/jillix/events/v0.1.4",
         "http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"
     ],
     "operations": [
