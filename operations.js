@@ -30,13 +30,14 @@ exports.upload = function (link) {
             id: generatedId
         };
 
-        docToInsert.filePath = link.params.uploadDir + "/" + docToInsert.fileName;
+        docToInsert.filePath = link.params.uploadDir + "/" + docToInsert.id + docToInsert.extension;
 
         collection.insert(docToInsert, function (err, doc) {
             if (err) { return link.send(400, err); }
 
             doc = doc[0];
             fs.rename(uploadedFilePath, newFilePath, function (err) {
+
                 if (err) { return link.send(400, err); }
 
                 var arg;
