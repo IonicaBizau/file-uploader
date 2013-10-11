@@ -8,7 +8,7 @@ module.exports = function(config) {
     Events.call(self, config);
 
     var $iframe = $("iframe", self.dom);
-    $("form", self.dom).on("submit", function () {
+    $("form", self.dom).on("submit", function (event) {
         $iframe.off("load");
         $iframe.on("load", function () {
             var result = $(this.contentWindow.document).text();
@@ -17,7 +17,9 @@ module.exports = function(config) {
             try {
                 result = JSON.parse(result);
             } catch (e) {}
-
+            
+            console.log(">>> file submitted");
+            
             self.emit("fileUploaded", result);
 
             var $iframeClone = $iframe.clone();
@@ -26,6 +28,7 @@ module.exports = function(config) {
             var $inputTypeFile = $("input[type=file]", self.dom);
             $inputTypeFile.replaceWith($inputTypeFile.clone(true));
         });
+        event.preventDefault();
     });
 
     self.emit("ready", config);
