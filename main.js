@@ -8,7 +8,7 @@ module.exports = function(config) {
     Events.call(self, config);
 
     var $iframe = $("iframe", self.dom);
-    $("form", self.dom).on("submit", function (event) {
+    $("form", self.dom).on("submit", function () {
         $iframe.off("load");
         $iframe.on("load", function () {
             var result = $(this.contentWindow.document).text();
@@ -28,7 +28,6 @@ module.exports = function(config) {
             var $inputTypeFile = $("input[type=file]", self.dom);
             $inputTypeFile.replaceWith($inputTypeFile.clone(true));
         });
-        event.preventDefault();
     });
 
     self.emit("ready", config);
