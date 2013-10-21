@@ -65,3 +65,14 @@ The module emits the following events:
         <td>uploaded file <code>id</code>, <code>path</code> or the entire object. This can be set in the module upload operation parameters.</td>
     </tbody>
 </table>
+
+## Change Log
+
+### dev
+
+- add new features and fixed here
+
+### v0.1.0
+
+- initial version
+
