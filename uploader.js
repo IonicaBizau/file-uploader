@@ -1,4 +1,3 @@
-M.wrap('github/IonicaBizau/file-uploader/dev/main.js', function (require, module, exports) {
 var Bind = require("github/jillix/bind");
 var Events = require("github/jillix/events");
 
@@ -9,6 +8,9 @@ module.exports = function(config) {
 
     var $iframe = $("iframe", self.dom);
     $("form", self.dom).on("submit", function () {
+        if (!$(this).find("input[type='file']").val()) {
+            return;
+        }
         $iframe.off("load");
         $iframe.on("load", function () {
             var result = $(this.contentWindow.document).text();
@@ -16,10 +18,10 @@ module.exports = function(config) {
 
             try {
                 result = JSON.parse(result);
-            } catch (e) {}
-            
-            console.log(">>> file submitted");
-            
+            } catch (e) {
+                // nothing to do
+            }
+
             self.emit("fileUploaded", result);
 
             var $iframeClone = $iframe.clone();
@@ -33,4 +35,3 @@ module.exports = function(config) {
     self.emit("ready", config);
 };
 
-return module; });
