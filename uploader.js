@@ -8,13 +8,16 @@ module.exports = function(config) {
 
     var $iframe = $("iframe", self.dom);
     $("form", self.dom).on("submit", function () {
-        if (!$(this).find("input[type='file']").val()) {
-            return;
-        }
+        var $form = $(this);
         $iframe.off("load");
         $iframe.on("load", function () {
             var result = $(this.contentWindow.document).text();
             if (!result) { return; }
+
+            var $inputFile = $form.find("input[type='file']");
+            if (!$inputFile.val()) {
+                return;
+            }
 
             try {
                 result = JSON.parse(result);
@@ -27,11 +30,9 @@ module.exports = function(config) {
             var $iframeClone = $iframe.clone();
             $iframe.attr("src", "");
 
-            var $inputTypeFile = $("input[type=file]", self.dom);
-            $inputTypeFile.replaceWith($inputTypeFile.clone(true));
+            $inputFile.replaceWith($inputFile.clone(true));
         });
     });
 
     self.emit("ready", config);
 };
-
