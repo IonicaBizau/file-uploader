@@ -72,6 +72,9 @@ The module emits the following events:
 
 - add new features and fixed here
 
+### v0.1.2
+ - Update to Events v0.1.7
+
 ### v0.1.1
 
  - Don't emit `fileUploaded` if no file was selected in the file input
