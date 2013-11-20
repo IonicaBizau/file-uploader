@@ -19,11 +19,6 @@ exports.upload = function (link) {
         return link.send(400, { error: "Missing params: uploadDir or dsUpload." });
     }
 
-    // if autoRename is not provided, the default value is true
-    if (link.params.autoRename === undefined) {
-        link.params.autoRename = true;
-    }
-
     // get the absolute path to the upload directory
     var uploadDir = M.app.getPath() + "/" + link.params.uploadDir;
 
@@ -108,44 +103,41 @@ exports.upload = function (link) {
                 // inserted doc is the first one
                 doc = doc[0];
 
-                // if autorename (default: true)
-                if (link.params.autoRename) {
-
-                    // rename the file
-                    fs.rename(uploadedFilePath, newFilePath, function (err) {
-
-                        // handle error
-                        if (err) { return link.send(400, err); }
-
-                        // and finally send the response
-                        link.send(200, getArgToSend(doc));
-                    });
-                } else {
-                    // and finally send the response
-                    link.send(200, getArgToSend(doc));
-                }
+                // and finally send the response
+                link.send(200, getArgToSend(doc));
             });
         }
 
-        // if upladFileEvent is provided
-        if (uploadFileEvent) {
-            // call for a custom handler
-            M.emit(uploadFileEvent, {
-                docToInsert: docToInsert,
-                link: link
-            }, function (err, newDocToInsert) {
+        // rename the file (this just adds the file extension)
+        fs.rename(uploadedFilePath, newFilePath, function (err) {
 
-                // handle error
-                if (err) { return link.send(400, err); }
+            // handle error
+            if (err) { return link.send(400, err); }
 
-                // insert the file data in the database
-                insertFileDataInDatabase(newDocToInsert);
-            });
-        // if it is not provided
-        } else {
-            // insert data directly
-            insertFileDataInDatabase(docToInsert);
-        }
+            // if upladFileEvent is provided
+            if (uploadFileEvent) {
+
+                // call for a custom handler
+                M.emit(uploadFileEvent, {
+                    docToInsert: docToInsert,
+                    link: link
+                }, function (err, newDocToInsert) {
+
+                    // handle error
+                    if (err) { return link.send(400, err); }
+
+                    // if we don't send any new document, docToInsert will be inserted
+                    newDocToInsert = newDocToInsert || docToInsert;
+
+                    // insert the file data in the database
+                    insertFileDataInDatabase(newDocToInsert);
+                });
+            // if it is not provided
+            } else {
+                // insert data directly
+                insertFileDataInDatabase(docToInsert);
+            }
+        });
     });
 };
 
