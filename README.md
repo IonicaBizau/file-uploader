@@ -32,7 +32,7 @@ The most important parameters are set in the module upload operation `params` ar
                 {
                     "dsUpload": "temporarDS",
                     "emitArgument": "path",
-                    "acceptTypes": ["txt", "and", "other", "file", "extensions"]
+                    "acceptTypes": ["txt", "and", "other", "file", "extensions"],
                     "uploadDir": "path/to/upload/dir",
                     "uploadFileEvent": "uploadedFileToImport"
                 }
