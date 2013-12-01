@@ -14,23 +14,32 @@ The most important parameters are set in the module upload operation `params` ar
 ### Example of configuration
 
 ```JSON
-{
-  "module": "github/IonicaBizau/file-uploader/dev",
-  "html": "/path/to/html/file.html",
-  "roles": [0],
-  "operations": {
-    "upload": {
-      "roles": [0],
-      "params": [
-        {
-            "dsUpload": "temporarDS",
-            "uploadDir": "/public/uploads",
-            "emitArgument": "id"
+"uploader": {
+    "module": "github/IonicaBizau/file-uploader/[VERSION]",
+    "config": {
+        "html": "/path/to/html/file.html",
+        "options": {
+            "acceptTypes": ["txt", "and", "other", "file", "extensions"]
+        },
+        "binds": [BIND_OBJECTS],
+        "listen": {EVENT_OBJECTS}
+    },
+    "roles": [MONO_ROLES],
+    "operations": {
+        "upload": {
+            "roles": [MONO_ROLES],
+            "params": [
+                {
+                    "dsUpload": "temporarDS",
+                    "emitArgument": "path",
+                    "acceptTypes": ["txt", "and", "other", "file", "extensions"]
+                    "uploadDir": "path/to/upload/dir",
+                    "uploadFileEvent": "uploadedFileToImport"
+                }
+            ]
         }
-      ]
     }
-  }
-}
+},
 ```
 
 Where `temporarDS` is defined into `datasources` key from application descriptor:
@@ -71,6 +80,10 @@ The module emits the following events:
 ### dev
 
 - add new features and fixed here
+
+### v0.1.3
+ - `acceptTypes` configuration and param fields
+ - Update to Bind v0.2.1
 
 ### v0.1.2
  - Update to Events v0.1.7

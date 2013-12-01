@@ -19,6 +19,9 @@ exports.upload = function (link) {
         return link.send(400, { error: "Missing params: uploadDir or dsUpload." });
     }
 
+    // accept types default value
+    link.params.acceptTypes = link.params.acceptTypes || [];
+
     // get the absolute path to the upload directory
     var uploadDir = M.app.getPath() + "/" + link.params.uploadDir;
 
@@ -28,6 +31,18 @@ exports.upload = function (link) {
     // get the extension of the uploaded file
     var fileExt = link.files.file.name;
     fileExt = fileExt.substring(fileExt.lastIndexOf(".")) || "";
+
+    // check the file type
+    if (!checkFileType(fileExt, link.params.acceptTypes)) {
+
+        // delete the uploaded file (that is invalid)
+        fs.unlink(uploadedFilePath, function (err) {
+            if (err) { console.error(err); }
+        });
+
+        // return bad request
+        return link.send(400, "Invalid file extension.");
+    }
 
     // get the generated id
     var generatedId = uploadedFilePath.substring(uploadedFilePath.lastIndexOf("/") + 1);
@@ -165,4 +180,19 @@ function getCollection (paramsDs, callback) {
     });
 }
 
+/*
+ *  This function checks if the selected file has a correct
+ *  extension (self.config.options.acceptTypes)
+ * */
+function checkFileType (ext, supportedExts) {
 
+    ext = ext.replace(".", "");
+
+    // the extension is not supported
+    if (supportedExts.indexOf(ext) === -1) {
+        return false;
+    }
+
+    // the extension is supported
+    return true;
+}
