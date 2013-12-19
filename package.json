@@ -8,9 +8,6 @@
     "url": "git://github.com/IonicaBizau/file-uploader.git"
   },
   "mono": {
-    "source": "github",
-    "owner": "IonicaBizau",
-    "name": "file-uploader",
     "dependencies": [
         "/uploader.js",
         "github/jillix/bind/v0.2.1",
