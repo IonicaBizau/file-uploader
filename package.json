@@ -1,0 +1,33 @@
+{
+  "name": "file-uploader",
+  "version": "0.1.3",
+  "description": "Mono file uploader module.",
+  "main": "operations.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/IonicaBizau/file-uploader.git"
+  },
+  "mono": {
+    "source": "github",
+    "owner": "IonicaBizau",
+    "name": "file-uploader",
+    "dependencies": [
+        "/uploader.js",
+        "github/jillix/bind/v0.2.1",
+        "github/jillix/events/v0.1.7"
+    ],
+    "operations": [
+        { "file": "operations.js", "function": "upload" }
+    ]
+  },
+  "keywords": [
+    "mono",
+    "file",
+    "uploader"
+  ],
+  "author": "Ionică Bizău",
+  "bugs": {
+    "url": "https://github.com/IonicaBizau/file-uploader/issues"
+  },
+  "homepage": "https://github.com/IonicaBizau/file-uploader"
+}
