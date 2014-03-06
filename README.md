@@ -81,6 +81,9 @@ The module emits the following events:
 
 - add new features and fixed here
 
+### v0.1.4
+ - Update to Events v0.1.8
+
 ### v0.1.3
  - `acceptTypes` configuration and param fields
  - Update to Bind v0.2.1
