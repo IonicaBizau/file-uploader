@@ -22,9 +22,6 @@ exports.upload = function (link) {
     // accept types default value
     link.params.acceptTypes = link.params.acceptTypes || [];
 
-    // get the absolute path to the upload directory
-    var uploadDir = M.app.getPath() + "/" + link.params.uploadDir;
-
     // get the uploaded file path
     var uploadedFilePath = M.app.getPath() + "/" + link.files.file.path;
 
@@ -44,114 +41,121 @@ exports.upload = function (link) {
         return link.send(400, "Invalid file extension.");
     }
 
-    // get the generated id
-    var generatedId = uploadedFilePath.substring(uploadedFilePath.lastIndexOf("/") + 1);
-
-    // final path
-    var newFilePath = uploadDir + "/" + generatedId + fileExt;
-
-    // get the collection from datasource
-    getCollection(link.params.dsUpload, function (err, collection) {
+    // get the absolute and relative path to the upload directory
+    getUploadDir(link.params, link.data, function (err, uploadDir, relativeUploadDir) {
 
         // handle error
         if (err) { return link.send(400, err); }
 
-        // create doc to insert object
-        var docToInsert = {
-            // that contains the file name
-            fileName: link.files.file.name,
-            // the exension
-            extension: fileExt,
-            // the file path
-            absoluteFilePath: newFilePath,
-            // the generated file id
-            id: generatedId
-        };
+        // get the generated id
+        var generatedId = uploadedFilePath.substring(uploadedFilePath.lastIndexOf("/") + 1);
 
-        // and the relative file path
-        docToInsert.filePath = link.params.uploadDir + "/" + docToInsert.id + docToInsert.extension;
+        // final path
+        var newFilePath = uploadDir + "/" + generatedId + fileExt;
 
-        // get the uploadFileEvent
-        var uploadFileEvent = link.params.uploadFileEvent;
-
-        /*
-         *  getArgToSend ()
-         *
-         *  This returns the argument to send on the client side
-         * */
-        function getArgToSend (doc) {
-            var arg;
-            switch (link.params.emitArgument) {
-                case "object":
-                    arg = doc;
-                    break;
-                case "path":
-                    arg = doc.filePath;
-                    break;
-                default:
-                    var emitArg = link.params.emitArgument;
-                    if (typeof emitArg === "object" && emitArg.type === "custom") {
-                        arg = doc[emitArg.value];
-                    } else {
-                        arg = doc.id;
-                    }
-                    break;
-            }
-            return arg;
-        }
-
-
-        /*
-         *  insertFileDataInDatabase (link, object)
-         *
-         *  This function inserts an object with the file information in the
-         *  database
-         * */
-        function insertFileDataInDatabase (fileInfo) {
-
-            // inser the file information
-            collection.insert(fileInfo, function (err, doc) {
-
-                // handle error
-                if (err) { return link.send(400, err); }
-
-                // inserted doc is the first one
-                doc = doc[0];
-
-                // and finally send the response
-                link.send(200, getArgToSend(doc));
-            });
-        }
-
-        // rename the file (this just adds the file extension)
-        fs.rename(uploadedFilePath, newFilePath, function (err) {
+        // get the collection from datasource
+        getCollection(link.params.dsUpload, function (err, collection) {
 
             // handle error
             if (err) { return link.send(400, err); }
 
-            // if upladFileEvent is provided
-            if (uploadFileEvent) {
+            // create doc to insert object
+            var docToInsert = {
+                // that contains the file name
+                fileName: link.files.file.name,
+                // the exension
+                extension: fileExt,
+                // the file path
+                absoluteFilePath: newFilePath,
+                // the generated file id
+                id: generatedId
+            };
 
-                // call for a custom handler
-                M.emit(uploadFileEvent, {
-                    docToInsert: docToInsert,
-                    link: link
-                }, function (err, newDocToInsert) {
+            // and the relative file path
+            docToInsert.filePath = relativeUploadDir + "/" + docToInsert.id + docToInsert.extension;
+
+            // get the uploadFileEvent
+            var uploadFileEvent = link.params.uploadFileEvent;
+
+            /*
+             *  getArgToSend ()
+             *
+             *  This returns the argument to send on the client side
+             * */
+            function getArgToSend (doc) {
+                var arg;
+                switch (link.params.emitArgument) {
+                    case "object":
+                        arg = doc;
+                        break;
+                    case "path":
+                        arg = doc.filePath;
+                        break;
+                    default:
+                        var emitArg = link.params.emitArgument;
+                        if (typeof emitArg === "object" && emitArg.type === "custom") {
+                            arg = doc[emitArg.value];
+                        } else {
+                            arg = doc.id;
+                        }
+                        break;
+                }
+                return arg;
+            }
+
+
+            /*
+             *  insertFileDataInDatabase (link, object)
+             *
+             *  This function inserts an object with the file information in the
+             *  database
+             * */
+            function insertFileDataInDatabase (fileInfo) {
+
+                // inser the file information
+                collection.insert(fileInfo, function (err, doc) {
 
                     // handle error
                     if (err) { return link.send(400, err); }
 
-                    // if we don't send any new document, docToInsert will be inserted
-                    newDocToInsert = newDocToInsert || docToInsert;
+                    // inserted doc is the first one
+                    doc = doc[0];
 
-                    // insert the file data in the database
-                    insertFileDataInDatabase(newDocToInsert);
+                    // and finally send the response
+                    link.send(200, getArgToSend(doc));
                 });
-            // if it is not provided
-            } else {
-                // insert data directly
-                insertFileDataInDatabase(docToInsert);
             }
+
+            // rename the file (this just adds the file extension)
+            fs.rename(uploadedFilePath, newFilePath, function (err) {
+
+                // handle error
+                if (err) { return link.send(400, err); }
+
+                // if upladFileEvent is provided
+                if (uploadFileEvent) {
+
+                    // call for a custom handler
+                    M.emit(uploadFileEvent, {
+                        docToInsert: docToInsert,
+                        link: link
+                    }, function (err, newDocToInsert) {
+
+                        // handle error
+                        if (err) { return link.send(400, err); }
+
+                        // if we don't send any new document, docToInsert will be inserted
+                        newDocToInsert = newDocToInsert || docToInsert;
+
+                        // insert the file data in the database
+                        insertFileDataInDatabase(newDocToInsert);
+                    });
+                // if it is not provided
+                } else {
+                    // insert data directly
+                    insertFileDataInDatabase(docToInsert);
+                }
+            });
         });
     });
 };
@@ -178,6 +182,37 @@ function getCollection (paramsDs, callback) {
             });
         });
     });
+}
+
+/*
+ *  This function looks for a custom handler to get
+ *  the upload dir
+ * */
+function getUploadDir (params, data, callback) {
+
+    var relativeUploadDir = params.uploadDir;
+
+    // look for a custom handler
+    if (params.customUpload) {
+
+        M.emit(params.customUpload, data, function (customDir) {
+
+            var uploadDir = M.app.getPath() + "/" + params.uploadDir + "/" + customDir;
+
+            // create the directory
+            fs.mkdir(uploadDir, function (err) {
+
+                // handle error
+                if (err && err.code !== "EEXIST") { return callback(err); }
+
+                relativeUploadDir += "/" + customDir;
+                callback(null, uploadDir, customDir, relativeUploadDir);
+            });
+        });
+    } else {
+        var uploadDir = M.app.getPath() + "/" + params.uploadDir;
+        callback(null, uploadDir, relativeUploadDir);
+    }
 }
 
 /*
