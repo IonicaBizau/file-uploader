@@ -96,6 +96,9 @@ module.exports = function(config) {
 
     // emit ready event
     self.emit("ready", config);
+
+    // listen to events
+    self.on("setData", setData);
 };
 
 /*
@@ -116,6 +119,41 @@ function checkFileType (fileInput) {
 
     // the extension is supported
     return true;
+}
+
+/*
+ *  This function appends to the upload form hidden inputs with values
+ *  from the selected table item
+ * */
+function setData (data, path) {
+
+    var self = this;
+
+    if (!path) {
+        path = "";
+    }
+
+    // build the inputs from the object
+    for (var key in data) {
+        if (key[0] !== '_' && data.hasOwnProperty(key)) {
+
+            // build the object path
+            var objPath = path.length ? (path + '.' + key) : key;
+
+            if (typeof data[key] === "object") {
+
+                setData(data[key], objPath);
+            } else {
+
+                // get the form
+                var $form = $("form", self.dom);
+
+                //create the input
+                var el = '<input type="hidden" class="hide" name="' + objPath + '" value="' + data[key] + '">';
+                $form.append(el);
+            }
+        }
+    }
 }
 
 /*
