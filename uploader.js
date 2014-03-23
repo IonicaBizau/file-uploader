@@ -15,6 +15,28 @@ module.exports = function(config) {
     // call events
     Events.call(self, config);
 
+    // call actions
+    initActions.call(self);
+
+    // emit ready event
+    self.emit("ready", config);
+
+    // listen to events
+    self.on("setData", setData);
+    self.on("initActions", initActions);
+};
+
+function initActions () {
+    var self = this;
+
+    // reinitialize the dom (if exists)
+    var dom_id = self.dom.id;
+    if (document.getElementById(dom_id)) {
+        self.dom = document.getElementById(dom_id);
+    } else {
+        return;
+    }
+
     // get the iframe from the module
     var $iframe = $("iframe", self.dom);
 
@@ -52,7 +74,6 @@ module.exports = function(config) {
 
     // forms on submit
     $("form", self.dom).on("submit", function () {
-
         // get submiited form
         var $form = $(this);
 
@@ -93,13 +114,7 @@ module.exports = function(config) {
             $inputFile.replaceWith($inputFile.clone(true));
         });
     });
-
-    // emit ready event
-    self.emit("ready", config);
-
-    // listen to events
-    self.on("setData", setData);
-};
+}
 
 /*
  *  This function checks if the selected file has a correct
