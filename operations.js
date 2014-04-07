@@ -160,6 +160,10 @@ exports.upload = function (link) {
     });
 };
 
+exports.download = function (link) {
+    
+}
+
 // private functions
 
 /*
