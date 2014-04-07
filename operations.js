@@ -162,6 +162,25 @@ exports.upload = function (link) {
 
 exports.download = function (link) {
     
+    if (!link.query.path || !link.query.ext || !link.query.name) {
+        return;
+    }
+
+    var extension = link.query.ext;
+    var name = link.query.name;
+    var path = M.app.getPath() + "/" + link.params.uploadDir + "/" + link.query.path;
+
+    if (!path) {
+        return;
+    }
+
+    link.res.writeHead(200, {
+        'Content-disposition': 'attachment;filename="' + name + '"',
+        'Content-Type': 'text/csv'
+    });
+
+    var filestream = fs.createReadStream(path);
+    filestream.pipe(link.res);
 }
 
 // private functions
