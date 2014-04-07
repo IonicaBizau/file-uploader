@@ -183,6 +183,10 @@ exports.download = function (link) {
     filestream.pipe(link.res);
 }
 
+exports.remove = function (link) {
+    
+}
+
 // private functions
 
 /*
