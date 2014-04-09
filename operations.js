@@ -169,25 +169,49 @@ exports.upload = function (link) {
  * */
 exports.download = function (link) {
     
-    if (!link.query.path || !link.query.ext || !link.query.name) {
+    if (!link.data && !link.query) {
         return;
     }
 
-    var extension = link.query.ext;
-    var name = link.query.name;
-    var path = M.app.getPath() + "/" + link.params.uploadDir + "/" + link.query.path;
-
-    if (!path) {
-        return;
+    // get the itemId
+    var itemId;
+    if (link.query.id) {
+        itemId = link.query.id;
+    } else if (link.data) {
+        if (link.data.itemId) {
+            itemId = link.data.itemId;
+        } else {
+            return link.send(400);
+        }
     }
 
-    link.res.writeHead(200, {
-        'Content-disposition': 'attachment;filename="' + name + '"',
-        'Content-Type': 'text/csv'
+    if (!itemId) {
+        return link.send(400);
+    }
+
+    getCollection(link.params.dsUpload, function (err, collection) {
+
+        // handle error
+        if (err) { return link.send(500, err); }
+
+        // find and remove the item from db
+        collection.findOne({ _id: ObjectId(itemId)}, function (err, doc) {
+
+            // handle error
+            if (err) { return link.send(500, err); }
+            if (!doc) { return link.send(404, 'item not found!'); }
+
+            var path = M.app.getPath() + "/" + link.params.uploadDir + "/" + doc.filePath;
+
+            link.res.writeHead(200, {
+                'Content-disposition': 'attachment;filename="' + doc.fileName + '"',
+                'Content-Type': 'text/csv'
+            });
+
+            var filestream = fs.createReadStream(path);
+            filestream.pipe(link.res);
+        });
     });
-
-    var filestream = fs.createReadStream(path);
-    filestream.pipe(link.res);
 }
 
 /*
@@ -204,10 +228,14 @@ exports.remove = function (link) {
 
     // get the itemId
     var itemId;
-    if (link.query.itemId) {
-        itemId = link.query.itemId;
+    if (link.query.id) {
+        itemId = link.query.id;
     } else if (link.data.itemId) {
         itemId = link.data.itemId;
+    }
+
+    if (!itemId) {
+        return link.send(400);
     }
 
     getCollection(link.params.dsUpload, function (err, collection) {
