@@ -1,4 +1,5 @@
 var fs = require("fs");
+var ObjectId = require("pongo").ObjectId;
 
 /*
  *  upload operation
@@ -160,6 +161,12 @@ exports.upload = function (link) {
     });
 };
 
+/*
+ *  download operation
+ *
+ *  This is the download operation which gets the id of a file and returns it
+ *
+ * */
 exports.download = function (link) {
     
     if (!link.query.path || !link.query.ext || !link.query.name) {
@@ -183,8 +190,50 @@ exports.download = function (link) {
     filestream.pipe(link.res);
 }
 
+/*
+ *  remove operation
+ *
+ *  This is the remove operation which gets the id of a file and deletes it
+ *
+ * */
 exports.remove = function (link) {
     
+    if (!link.data && !link.query) {
+        return;
+    }
+
+    // get the itemId
+    var itemId;
+    if (link.query.itemId) {
+        itemId = link.query.itemId;
+    } else if (link.data.itemId) {
+        itemId = link.data.itemId;
+    }
+
+    getCollection(link.params.dsUpload, function (err, collection) {
+
+        // handle error
+        if (err) { return link.send(500, err); }
+
+        // find and remove the item from db
+        collection.findAndRemove({ _id: ObjectId(itemId)}, function (err, doc) {
+
+            // handle error
+            if (err) { return link.send(500, err); }
+            if (!doc) { return link.send(404, 'item not found!'); }
+
+            var path = M.app.getPath() + "/" + link.params.uploadDir + "/" + doc.filePath;
+
+            // delete the item
+            fs.unlink(path, function (err) {
+
+                // handle error;
+                if (err) { return link.send(400, 'Bad Request'); }
+
+                link.send(200);
+            });
+        });
+    });
 }
 
 // private functions

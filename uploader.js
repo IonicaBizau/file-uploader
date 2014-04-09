@@ -1,3 +1,4 @@
+M.wrap('github/IonicaBizau/file-uploader/dev/uploader.js', function (require, module, exports) {
 var Bind = require("github/jillix/bind");
 var Events = require("github/jillix/events");
 
@@ -99,7 +100,28 @@ module.exports = function(config) {
 
     // listen to events
     self.on("setData", setData);
+    self.on("removeItem", removeItem);
 };
+
+/*
+ * This function makes a request to the remove operation to delete a file
+ * */
+function removeItem (itemId) {
+    var self = this;
+
+    // make the request
+    var data = {
+        itemId: itemId
+    }
+    self.link('remove', { data: data }, function (err, data) {
+
+        if (err) {
+            return;
+        }
+
+        self.emit('itemRemoved');
+    });
+}
 
 /*
  *  This function checks if the selected file has a correct
@@ -164,3 +186,5 @@ function processConfig (config) {
     config.options = config.options || {};
     config.options.acceptTypes = config.options.acceptTypes || [];
 }
+
+return module; });
