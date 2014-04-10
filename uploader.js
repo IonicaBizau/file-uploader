@@ -1,4 +1,3 @@
-M.wrap('github/IonicaBizau/file-uploader/dev/uploader.js', function (require, module, exports) {
 var Bind = require("github/jillix/bind");
 var Events = require("github/jillix/events");
 
@@ -44,7 +43,7 @@ module.exports = function(config) {
     // file input change event
     $fileInputs.on("change", function () {
         // is the file accepted?
-        if (!checkFileType.call(self, this)) {
+        if (acceptAttrValue && !checkFileType.call(self, this)) {
             // empty the value of file input
             // TODO is this supported on IE?
             $(this).val("");
@@ -187,4 +186,3 @@ function processConfig (config) {
     config.options.acceptTypes = config.options.acceptTypes || [];
 }
 
-return module; });

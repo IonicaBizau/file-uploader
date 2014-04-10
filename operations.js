@@ -31,7 +31,7 @@ exports.upload = function (link) {
     fileExt = fileExt.substring(fileExt.lastIndexOf(".")) || "";
 
     // check the file type
-    if (!checkFileType(fileExt, link.params.acceptTypes)) {
+    if (link.params.acceptTypes.length && !checkFileType(fileExt, link.params.acceptTypes)) {
 
         // delete the uploaded file (that is invalid)
         fs.unlink(uploadedFilePath, function (err) {
@@ -344,3 +344,4 @@ function checkFileType (ext, supportedExts) {
     // the extension is supported
     return true;
 }
+
