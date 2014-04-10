@@ -79,21 +79,25 @@ The module emits the following events:
 
 ### dev
 
+- `acceptTypes` options (both client and server) if not present, allows any file type uploads
 - add new features and fixed here
 
 ### v0.1.4
- - Update to Events v0.1.8
+
+- Update to Events v0.1.8
 
 ### v0.1.3
- - `acceptTypes` configuration and param fields
- - Update to Bind v0.2.1
+
+- `acceptTypes` configuration and param fields
+- Update to Bind v0.2.1
 
 ### v0.1.2
- - Update to Events v0.1.7
+
+- Update to Events v0.1.7
 
 ### v0.1.1
 
- - Don't emit `fileUploaded` if no file was selected in the file input
+- Don't emit `fileUploaded` if no file was selected in the file input
 
 ### v0.1.0
 
