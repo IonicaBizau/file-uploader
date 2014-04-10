@@ -43,7 +43,7 @@ exports.upload = function (link) {
     }
 
     // get the absolute and relative path to the upload directory
-    getUploadDir(link.params, link.data, function (err, uploadDir, relativeUploadDir) {
+    getUploadDir(link, function (err, uploadDir, relativeUploadDir) {
 
         // handle error
         if (err) { return link.send(400, err); }
@@ -292,29 +292,38 @@ function getCollection (paramsDs, callback) {
  *  This function looks for a custom handler to get
  *  the upload dir
  * */
-function getUploadDir (params, data, callback) {
+function getUploadDir (link, callback) {
 
-    var relativeUploadDir = params.uploadDir;
+    var relativeUploadDir = link.params.uploadDir;
 
     // look for a custom handler
-    if (params.customUpload) {
+    if (link.params.customUpload) {
 
-        M.emit(params.customUpload, data, function (customDir) {
+        M.emit(link.params.customUpload, { data: link.data, link: link }, function (customDir) {
 
-            var uploadDir = M.app.getPath() + "/" + params.uploadDir + "/" + customDir;
+            var customDirs = customDir.split("/");
+            var uploadDir = M.app.getPath() + "/" + link.params.uploadDir;
+            var DIRS_TO_CREATE = customDirs.length;
+            
+            for (var i in customDirs){
 
-            // create the directory
-            fs.mkdir(uploadDir, function (err) {
+                uploadDir += "/" + customDirs[i];
 
-                // handle error
-                if (err && err.code !== "EEXIST") { return callback(err); }
+                // create the directory
+                fs.mkdir(uploadDir, function (err) {
 
-                relativeUploadDir += "/" + customDir;
-                callback(null, uploadDir, customDir, relativeUploadDir);
-            });
+                    // handle error
+                    if (err && err.code !== "EEXIST") { return callback(err); }
+
+                    if (!--DIRS_TO_CREATE) {
+                        relativeUploadDir += "/" + customDir;
+                        callback(null, uploadDir, customDir, relativeUploadDir);
+                    }
+                });
+            }
         });
     } else {
-        var uploadDir = M.app.getPath() + "/" + params.uploadDir;
+        var uploadDir = M.app.getPath() + "/" + link.params.uploadDir;
         callback(null, uploadDir, relativeUploadDir);
     }
 }
