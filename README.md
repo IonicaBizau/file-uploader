@@ -79,6 +79,10 @@ The module emits the following events:
 
 ### dev
 
+- add new features here
+
+### v0.1.5
+
 - `acceptTypes` options (both client and server) if not present, allows any file type uploads
 - add new features and fixed here
 - Update to Events v0.1.10
