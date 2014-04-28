@@ -4,8 +4,8 @@
     "name": "file-uploader",
     "dependencies": [
         "/uploader.js",
-        "github/jillix/bind/v0.2.1",
-        "github/jillix/events/v0.1.8"
+        "github/jillix/bind/v0.2.2",
+        "github/jillix/events/v0.1.10"
     ],
     "operations": [
         { "file": "operations.js", "function": "upload" },
