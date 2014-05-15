@@ -168,7 +168,7 @@ exports.upload = function (link) {
  *
  * */
 exports.download = function (link) {
-    
+
     if (!link.data && !link.query) {
         return;
     }
@@ -221,7 +221,7 @@ exports.download = function (link) {
  *
  * */
 exports.remove = function (link) {
-    
+
     if (!link.data && !link.query) {
         return;
     }
@@ -304,7 +304,7 @@ function getUploadDir (link, callback) {
             var customDirs = customDir.split("/");
             var uploadDir = M.app.getPath() + "/" + link.params.uploadDir;
             var DIRS_TO_CREATE = customDirs.length;
-            
+
             for (var i in customDirs){
 
                 uploadDir += "/" + customDirs[i];
