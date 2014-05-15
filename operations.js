@@ -11,7 +11,7 @@ var ObjectId = require("pongo").ObjectId;
 exports.upload = function (link) {
 
     // validate upload
-    if (!link.files || !link.files.file) {
+    if (!link.files || !link.files.file || !link.files.file.size) {
         return link.send(400, { error: "Invalid upload" });
     }
 
