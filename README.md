@@ -81,35 +81,31 @@ The module emits the following events:
 
 - add new features here
 
-### v0.1.6
+### v0.1.7
+ - Check the file size when uploading a file
 
+### v0.1.6
 - Update to Events v0.1.11
 
 ### v0.1.5
-
 - `acceptTypes` options (both client and server) if not present, allows any file type uploads
 - add new features and fixed here
 - Update to Events v0.1.10
 - Update to Bind v0.2.2
 
 ### v0.1.4
-
 - Update to Events v0.1.8
 
 ### v0.1.3
-
 - `acceptTypes` configuration and param fields
 - Update to Bind v0.2.1
 
 ### v0.1.2
-
 - Update to Events v0.1.7
 
 ### v0.1.1
-
 - Don't emit `fileUploaded` if no file was selected in the file input
 
 ### v0.1.0
-
 - initial version
 
