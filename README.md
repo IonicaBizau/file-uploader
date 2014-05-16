@@ -80,9 +80,11 @@ The module emits the following events:
 ### dev
 
 - add new features here
+### v0.1.8
+- Moved the `fileUploaded` event emit higher in the code
 
 ### v0.1.7
- - Check the file size when uploading a file
+- Check the file size when uploading a file
 
 ### v0.1.6
 - Update to Events v0.1.11

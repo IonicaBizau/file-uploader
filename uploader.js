@@ -68,6 +68,9 @@ module.exports = function(config) {
             // if no result, return
             if (!result) { return; }
 
+            // emit fileUploaded event and the result
+            self.emit("fileUploaded", result);
+
             // get file input jQuery object
             var $inputFile = $form.find("input[type='file']");
 
@@ -82,9 +85,6 @@ module.exports = function(config) {
             } catch (e) {
                 // nothing to do
             }
-
-            // emit fileUploaded event and the result
-            self.emit("fileUploaded", result);
 
             // set src of iframe
             $iframe.attr("src", "");
@@ -185,4 +185,3 @@ function processConfig (config) {
     config.options = config.options || {};
     config.options.acceptTypes = config.options.acceptTypes || [];
 }
-
