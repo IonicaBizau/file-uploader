@@ -78,8 +78,8 @@ The module emits the following events:
 ## Change Log
 
 ### dev
+- added custom handler support for the file path in the download operation
 
-- add new features here
 ### v0.1.8
 - Moved the `fileUploaded` event emit higher in the code
 

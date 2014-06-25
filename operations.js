@@ -201,15 +201,29 @@ exports.download = function (link) {
             if (err) { return link.send(500, err); }
             if (!doc) { return link.send(404, 'item not found!'); }
 
-            var path = M.app.getPath() + "/" + link.params.uploadDir + "/" + doc.filePath;
-
             link.res.writeHead(200, {
                 'Content-disposition': 'attachment;filename="' + doc.fileName + '"',
                 'Content-Type': 'text/csv'
             });
 
-            var filestream = fs.createReadStream(path);
-            filestream.pipe(link.res);
+            // look for a path custom handler
+            if (link.params.customPathHandler) {
+
+                // call the handler
+                M.emit(link.params.customPathHandler, {
+                    doc: doc,
+                    link: link,
+                }, function (path) {
+
+                    var filestream = fs.createReadStream(path);
+                    filestream.pipe(link.res);
+                });
+            } else {
+                var path = M.app.getPath() + "/" + link.params.uploadDir + "/" + doc.filePath;
+
+                var filestream = fs.createReadStream(path);
+                filestream.pipe(link.res);
+            }
         });
     });
 }
