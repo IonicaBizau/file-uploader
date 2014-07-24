@@ -78,7 +78,12 @@ The module emits the following events:
 ## Change Log
 
 ### dev
-- added custom handler support for the file path in the download operation
+- add new features and fixes here
+
+### v0.2.1
+- Added custom handler support for the file path in the download operation
+- Removed the `Content-Disposition` `attachment` directive for the download operation
+- Removed the `text/csv` `Content-Type` from the download operation
 
 ### v0.1.8
 - Moved the `fileUploaded` event emit higher in the code
