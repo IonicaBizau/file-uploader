@@ -202,8 +202,7 @@ exports.download = function (link) {
             if (!doc) { return link.send(404, 'item not found!'); }
 
             link.res.writeHead(200, {
-                'Content-disposition': 'attachment;filename="' + doc.fileName + '"',
-                'Content-Type': 'text/csv'
+                'Content-disposition': 'filename="' + doc.fileName + '"'
             });
 
             // look for a path custom handler
