@@ -80,6 +80,9 @@ The module emits the following events:
 ### dev
 - add new features and fixes here
 
+### v0.3.0
+- Updated deps
+
 ### v0.2.1
 - Added custom handler support for the file path in the download operation
 - Removed the `Content-Disposition` `attachment` directive for the download operation
