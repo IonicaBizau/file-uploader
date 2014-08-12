@@ -80,6 +80,9 @@ The module emits the following events:
 ### dev
 - add new features and fixes here
 
+### v0.3.1
+- Updated to Bind `v0.3.1`
+
 ### v0.3.0
 - Updated deps
 
