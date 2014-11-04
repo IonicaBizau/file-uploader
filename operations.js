@@ -201,10 +201,6 @@ exports.download = function (link) {
             if (err) { return link.send(500, err); }
             if (!doc) { return link.send(404, 'item not found!'); }
 
-            link.res.writeHead(200, {
-                'Content-disposition': 'filename="' + doc.fileName + '"'
-            });
-
             // look for a path custom handler
             if (link.params.customPathHandler) {
 
@@ -214,14 +210,38 @@ exports.download = function (link) {
                     link: link,
                 }, function (path) {
 
-                    var filestream = fs.createReadStream(path);
-                    filestream.pipe(link.res);
+                    // check if file exists
+                    fs.exists(path, function (exists) {
+
+                        if (!exists) {
+                            return link.send(404, ' 404 file not found');
+                        }
+
+                        link.res.writeHead(200, {
+                            'Content-disposition': 'filename="' + doc.fileName + '"'
+                        });
+
+                        var filestream = fs.createReadStream(path);
+                        filestream.pipe(link.res);
+                    });
                 });
             } else {
                 var path = M.app.getPath() + "/" + link.params.uploadDir + "/" + doc.filePath;
 
-                var filestream = fs.createReadStream(path);
-                filestream.pipe(link.res);
+                // check if file exists
+                fs.exists(path, function (exists) {
+
+                    if (!exists) {
+                        return link.send(404, '404 file not found');
+                    }
+
+                    link.res.writeHead(200, {
+                        'Content-disposition': 'filename="' + doc.fileName + '"'
+                    });
+
+                    var filestream = fs.createReadStream(path);
+                    filestream.pipe(link.res);
+                });
             }
         });
     });
