@@ -15,7 +15,7 @@ The most important parameters are set in the module upload operation `params` ar
 
 ```JSON
 "uploader": {
-    "module": "github/IonicaBizau/file-uploader/[VERSION]",
+    "module": "github/jillix/file-uploader/[VERSION]",
     "config": {
         "html": "/path/to/html/file.html",
         "options": {
