@@ -5,7 +5,7 @@
   "main": "operations.js",
   "repository": {
     "type": "git",
-    "url": "git://github.com/IonicaBizau/file-uploader.git"
+    "url": "git://github.com/jillix/file-uploader.git"
   },
   "mono": {
     "dependencies": [
@@ -21,7 +21,7 @@
   ],
   "author": "Ionică Bizău",
   "bugs": {
-    "url": "https://github.com/IonicaBizau/file-uploader/issues"
+    "url": "https://github.com/jillix/file-uploader/issues"
   },
-  "homepage": "https://github.com/IonicaBizau/file-uploader"
+  "homepage": "https://github.com/jillix/file-uploader"
 }
