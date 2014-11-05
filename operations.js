@@ -1,5 +1,5 @@
 var fs = require("fs");
-var ObjectId = require("pongo").ObjectId;
+var ObjectId = M.mongo.ObjectID;
 
 /*
  *  upload operation
@@ -189,6 +189,28 @@ exports.download = function (link) {
         return link.send(400);
     }
 
+    /*
+     *  pipeFile ()
+     *
+     *  This function checks if the file exists and pipes the result
+     * */
+    function pipeFile (doc, path) {
+        // check if file exists
+        fs.exists(path, function (exists) {
+
+            if (!exists) {
+                return link.send(404, ' 404 file not found');
+            }
+
+            link.res.writeHead(200, {
+                'Content-disposition': 'filename="' + doc.fileName + '"'
+            });
+
+            var filestream = fs.createReadStream(path);
+            filestream.pipe(link.res);
+        });
+    }
+
     getCollection(link.params.dsUpload, function (err, collection) {
 
         // handle error
@@ -210,38 +232,14 @@ exports.download = function (link) {
                     link: link,
                 }, function (path) {
 
-                    // check if file exists
-                    fs.exists(path, function (exists) {
-
-                        if (!exists) {
-                            return link.send(404, ' 404 file not found');
-                        }
-
-                        link.res.writeHead(200, {
-                            'Content-disposition': 'filename="' + doc.fileName + '"'
-                        });
-
-                        var filestream = fs.createReadStream(path);
-                        filestream.pipe(link.res);
-                    });
+                    // pipe the file
+                    pipeFile(doc, path);
                 });
             } else {
                 var path = M.app.getPath() + "/" + link.params.uploadDir + "/" + doc.filePath;
 
-                // check if file exists
-                fs.exists(path, function (exists) {
-
-                    if (!exists) {
-                        return link.send(404, '404 file not found');
-                    }
-
-                    link.res.writeHead(200, {
-                        'Content-disposition': 'filename="' + doc.fileName + '"'
-                    });
-
-                    var filestream = fs.createReadStream(path);
-                    filestream.pipe(link.res);
-                });
+                // pipe the file
+                pipeFile(doc, path);
             }
         });
     });
@@ -377,4 +375,3 @@ function checkFileType (ext, supportedExts) {
     // the extension is supported
     return true;
 }
-
