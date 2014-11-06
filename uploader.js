@@ -68,23 +68,24 @@ module.exports = function(config) {
             // if no result, return
             if (!result) { return; }
 
+            // parse the result
+            try {
+                result = JSON.parse(result);
+            } catch (e) {
+                console.log(e);
+                return;
+            }
+
+            if (result.error || !result.success) { return; }
+
             // emit fileUploaded event and the result
-            self.emit("fileUploaded", result);
+            self.emit("fileUploaded", result.success);
 
             // get file input jQuery object
             var $inputFile = $form.find("input[type='file']");
 
             // verify its value
-            if (!$inputFile.val()) {
-                return;
-            }
-
-            // try to parse result
-            try {
-                result = JSON.parse(result);
-            } catch (e) {
-                // nothing to do
-            }
+            if (!$inputFile.val()) { return; }
 
             // set src of iframe
             $iframe.attr("src", "");
