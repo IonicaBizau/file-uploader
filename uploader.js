@@ -72,7 +72,6 @@ module.exports = function(config) {
             try {
                 result = JSON.parse(result);
             } catch (e) {
-                console.log(e);
                 return;
             }
 
