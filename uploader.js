@@ -71,11 +71,12 @@ module.exports = function(config) {
             // parse the result
             try {
                 result = JSON.parse(result);
-            } catch (e) {
+            } catch (err) {
+                console.error(err);
                 return;
             }
 
-            if (result.error || !result.success) { return; }
+            if (result.error || !result.success) { return console.error(result.error || "Upload Failed"); }
 
             // emit fileUploaded event and the result
             self.emit("fileUploaded", result.success);
