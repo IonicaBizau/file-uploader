@@ -80,6 +80,17 @@ The module emits the following events:
 ### dev
 - add new features and fixes here
 
+### v0.3.4
+- catching server side errors during upload
+- added `uploadFile` event
+- fixed IE upload problem (IFRAME does not understand application/json content type)
+
+### v0.3.3
+- piping downloaded files
+
+### v0.3.2
+- checking if file exists for download
+
 ### v0.3.1
 - Updated to Bind `v0.3.1`
 
