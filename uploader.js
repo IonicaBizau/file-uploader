@@ -97,7 +97,7 @@ module.exports = function(config) {
 
             // replace the file input
             $inputFile.replaceWith($inputFile.clone(true));
-        });
+        };
     });
 
     // emit ready event
