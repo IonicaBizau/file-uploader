@@ -10,6 +10,10 @@ var ObjectId = M.mongo.ObjectID;
  * */
 exports.upload = function (link) {
 
+    // this is necessary because IE does not properly interpret
+    // application/json content types in an IFRAME
+    link.res.headers["content-type"] = "text/plain";
+
     // validate upload
     if (!link.files || !link.files.file || !link.files.file.size) {
         return link.send(400, { error: "Invalid upload" });
