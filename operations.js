@@ -10,6 +10,10 @@ var ObjectId = M.mongo.ObjectID;
  * */
 exports.upload = function (link) {
 
+    // this is necessary because IE does not properly interpret
+    // application/json content types in an IFRAME
+    link.res.headers["content-type"] = "text/plain";
+
     // validate upload
     if (!link.files || !link.files.file || !link.files.file.size) {
         return link.send(400, { error: "Invalid upload" });
@@ -39,14 +43,14 @@ exports.upload = function (link) {
         });
 
         // return bad request
-        return link.send(400, "Invalid file extension.");
+        return link.send(400, { error: "Invalid file extension." });
     }
 
     // get the absolute and relative path to the upload directory
     getUploadDir(link, function (err, uploadDir, relativeUploadDir) {
 
         // handle error
-        if (err) { return link.send(400, err); }
+        if (err) { return link.send(400, { error: err }); }
 
         // get the generated id
         var generatedId = uploadedFilePath.substring(uploadedFilePath.lastIndexOf("/") + 1);
@@ -58,7 +62,7 @@ exports.upload = function (link) {
         getCollection(link.params.dsUpload, function (err, collection) {
 
             // handle error
-            if (err) { return link.send(400, err); }
+            if (err) { return link.send(400, { error: err }); }
 
             // create doc to insert object
             var docToInsert = {
@@ -117,13 +121,13 @@ exports.upload = function (link) {
                 collection.insert(fileInfo, function (err, doc) {
 
                     // handle error
-                    if (err) { return link.send(400, err); }
+                    if (err) { return link.send(400, { error: err }); }
 
                     // inserted doc is the first one
                     doc = doc[0];
 
                     // and finally send the response
-                    link.send(200, getArgToSend(doc));
+                    link.send(200, { success: getArgToSend(doc) });
                 });
             }
 
@@ -131,7 +135,7 @@ exports.upload = function (link) {
             fs.rename(uploadedFilePath, newFilePath, function (err) {
 
                 // handle error
-                if (err) { return link.send(400, err); }
+                if (err) { return link.send(400, { error: err }); }
 
                 // if upladFileEvent is provided
                 if (uploadFileEvent) {
@@ -143,7 +147,7 @@ exports.upload = function (link) {
                     }, function (err, newDocToInsert) {
 
                         // handle error
-                        if (err) { return link.send(400, err); }
+                        if (err) { return link.send(400, { error: err }); }
 
                         // if we don't send any new document, docToInsert will be inserted
                         newDocToInsert = newDocToInsert || docToInsert;
