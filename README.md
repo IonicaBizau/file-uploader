@@ -80,7 +80,7 @@ The module emits the following events:
 ### dev
 - add new features and fixes here
 
-### v0.3.4
+### v0.3.5
 - catching server side errors during upload
 - added `uploadFile` event
 - fixed IE upload problem (IFRAME does not understand application/json content type)
