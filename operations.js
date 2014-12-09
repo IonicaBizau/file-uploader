@@ -105,9 +105,9 @@ exports.upload = function (link) {
                         }
                         break;
                 }
+
                 return arg;
             }
-
 
             /*
              *  insertFileDataInDatabase (link, object)
@@ -203,11 +203,11 @@ exports.download = function (link) {
         fs.exists(path, function (exists) {
 
             if (!exists) {
-                return link.send(404, ' 404 file not found');
+                return link.send(404, " 404 file not found");
             }
 
             link.res.writeHead(200, {
-                'Content-disposition': 'filename="' + doc.fileName + '"'
+                "Content-disposition": "filename=\"" + doc.fileName + "\""
             });
 
             var filestream = fs.createReadStream(path);
@@ -225,7 +225,7 @@ exports.download = function (link) {
 
             // handle error
             if (err) { return link.send(500, err); }
-            if (!doc) { return link.send(404, 'item not found!'); }
+            if (!doc) { return link.send(404, "item not found!"); }
 
             // look for a path custom handler
             if (link.params.customPathHandler) {
@@ -283,7 +283,7 @@ exports.remove = function (link) {
 
             // handle error
             if (err) { return link.send(500, err); }
-            if (!doc) { return link.send(404, 'item not found!'); }
+            if (!doc) { return link.send(404, "item not found!"); }
 
             var path = M.app.getPath() + "/" + link.params.uploadDir + "/" + doc.filePath;
 
@@ -291,7 +291,7 @@ exports.remove = function (link) {
             fs.unlink(path, function (err) {
 
                 // handle error;
-                if (err) { return link.send(400, 'Bad Request'); }
+                if (err) { return link.send(400, "Bad Request"); }
 
                 link.send(200);
             });
@@ -324,43 +324,47 @@ function getCollection (paramsDs, callback) {
 }
 
 /*
- *  This function looks for a custom handler to get
- *  the upload dir
+ *  This function looks for a custom handler to get the upload dir
  * */
 function getUploadDir (link, callback) {
 
     var relativeUploadDir = link.params.uploadDir;
 
-    // look for a custom handler
-    if (link.params.customUpload) {
-
-        M.emit(link.params.customUpload, { data: link.data, link: link }, function (customDir) {
-
-            var customDirs = customDir.split("/");
-            var uploadDir = M.app.getPath() + "/" + link.params.uploadDir;
-            var DIRS_TO_CREATE = customDirs.length;
-
-            for (var i in customDirs){
-
-                uploadDir += "/" + customDirs[i];
-
-                // create the directory
-                fs.mkdir(uploadDir, function (err) {
-
-                    // handle error
-                    if (err && err.code !== "EEXIST") { return callback(err); }
-
-                    if (!--DIRS_TO_CREATE) {
-                        relativeUploadDir += "/" + customDir;
-                        callback(null, uploadDir, customDir, relativeUploadDir);
-                    }
-                });
-            }
-        });
-    } else {
+    // default behavior? (not a custom upload dir handler event)
+    if (!link.params.customUpload) {
         var uploadDir = M.app.getPath() + "/" + link.params.uploadDir;
-        callback(null, uploadDir, relativeUploadDir);
+        return callback(null, uploadDir, relativeUploadDir);
     }
+
+    // there is a customUpload handler event
+    M.emit(link.params.customUpload, { data: link.data, link: link }, function (customDir) {
+
+        customDir = customDir || "";
+        var customDirs = customDir.split("/");
+        var uploadDir = M.app.getPath() + "/" + link.params.uploadDir;
+        var DIRS_TO_CREATE = customDirs.length;
+
+        if (!DIRS_TO_CREATE) {
+            return callback(null, uploadDir, customDir, relativeUploadDir);
+        }
+
+        for (var i in customDirs) {
+            uploadDir += "/" + customDirs[i];
+
+            // create the directory
+            fs.mkdir(uploadDir, function (err) {
+                // handle error
+                // TODO - what if a file exists with the name of a folder?
+                //      - replace this with a library
+                if (err && err.code !== "EEXIST") { return callback(err); }
+
+                if (!--DIRS_TO_CREATE) {
+                    relativeUploadDir += "/" + customDir;
+                    callback(null, uploadDir, customDir, relativeUploadDir);
+                }
+            });
+        }
+    });
 }
 
 /*
