@@ -9,7 +9,10 @@ The most important parameters are set in the module upload operation `params` ar
 
  - `uploadDir`: path to the directory where the file will be uploaded (**required**)
  - `dsUpload`: datasource (**required**)
- - `emitArgument`: sets the parameter that will be emited by module in `fileUploaded` event. It can take the following values: `id`, `path`, `object` or an object: `{"type": "custom", "value": "docKey"}`
+ - `emitArgument`: sets the parameter that will be emited by module in `fileUploaded` event. It can take the following values: `id`, `path`, `object` or an object: `{"type": "custom", "value": "docKey"}` (`upload` operation)
+ - `uploadFileEvent`: name of custom handler that gets called before the uploaded object gets inserted in the db (`upload` operation)
+ - `customUpload`: name of custom handler that gets called in order to construct a custom upload path for the uploaded file (`upload` operation)
+ - `customPathHandler`: name of custom handler that gets called in order to construct a custom path to a file that needs to be downloaded (`download` operation)
 
 ### Example of configuration
 
@@ -34,7 +37,27 @@ The most important parameters are set in the module upload operation `params` ar
                     "emitArgument": "path",
                     "acceptTypes": ["txt", "and", "other", "file", "extensions"],
                     "uploadDir": "path/to/upload/dir",
-                    "uploadFileEvent": "uploadedFileToImport"
+                    "uploadFileEvent": "uploadedFileToImport",
+                    "customUpload": "getUploadCustomPath"
+                }
+            ]
+        },
+        "download": {
+            "roles": [MONO_ROLES],
+            "params": [
+                {
+                    "dsUpload": "temporarDS",
+                    "uploadDir": "path/to/upload/dir",
+                    "customPathHandler": "getDocCustomPath"
+                }
+            ]
+        },
+        "remove": {
+            "roles": [MONO_ROLES],
+            "params": [
+                {
+                    "dsUpload": "temporarDS",
+                    "uploadDir": "path/to/upload/dir"
                 }
             ]
         }
@@ -69,9 +92,21 @@ The module emits the following events:
         <th>Parameters</th>
     </thead>
     <tbody>
-        <td><pre>fileUploaded</pre></td>
-        <td>It is emited when the file is uploaded</td>
-        <td>uploaded file <code>id</code>, <code>path</code> or the entire object. This can be set in the module upload operation parameters.</td>
+        <tr>
+            <td><pre>fileUploaded</pre></td>
+            <td>It is emited when the file is uploaded</td>
+            <td>uploaded file <code>id</code>, <code>path</code> or the entire object. This can be set in the module upload operation parameters.</td>
+        </tr>
+        <tr>
+            <td><pre>uploadFailed</pre></td>
+            <td>It is emited when the upload process encountered an error and failed</td>
+            <td>The <code>error</code> encountered. This parameter can be missing.</td>
+        </tr>
+        <tr>
+            <td><pre>itemRemoved</pre></td>
+            <td>It is emited when the file is successfully removed</td>
+            <td>none</td>
+        </tr>
     </tbody>
 </table>
 
