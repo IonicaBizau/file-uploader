@@ -115,6 +115,9 @@ The module emits the following events:
 ### dev
 - add new features and fixes here
 
+### v0.3.6
+- Updated to Bind `v0.3.2`
+
 ### v0.3.5
 - catching server side errors during upload
 - added `uploadFile` event
