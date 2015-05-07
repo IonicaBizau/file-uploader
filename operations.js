@@ -273,17 +273,75 @@ exports.remove = function (link) {
         return link.send(400);
     }
 
+    // check if a custom handler exists
+    if (link.params.removeFileEvent) {
+        // call the handler
+        M.emit(link.params.removeFileEvent, {
+            link: link
+        }, function (err) {
+
+            if (err) { return link.send(400, err); }
+
+            // remove file
+            removeFile(link, itemId, function (err) {
+
+                // handle error
+                if (err) {
+                    if (err === "NOT_FOUND") {
+                        return link.send(404, "File not found!");
+                    } else if (err === "BAD_REQUEST") {
+                        return link.send(400, "Bad request!");
+                    } else {
+                        return link.send(500, err);
+                    }
+                }
+
+                // all done
+                link.send(200);
+            });
+        });
+    } else {
+        // remove file
+        removeFile(link, itemId, function (err) {
+
+            // handle error
+            if (err) {
+                if (err === "NOT_FOUND") {
+                    return link.send(404, "File not found!");
+                } else if (err === "BAD_REQUEST") {
+                    return link.send(400, "Bad request!");
+                } else {
+                    return link.send(500, err);
+                }
+            }
+
+            // all done
+            link.send(200);
+        });
+    }
+}
+
+// private functions
+
+/*
+ *  removedFile (link, itemId, function)
+ *
+ *  This removes a document form a collection and then deletes it
+ *  from the upload dir
+ * */
+function removeFile (link, itemId, callback) {
+
     getCollection(link.params.dsUpload, function (err, collection) {
 
         // handle error
-        if (err) { return link.send(500, err); }
+        if (err) { return callback(err); }
 
         // find and remove the item from db
         collection.findAndRemove({ _id: ObjectId(itemId)}, function (err, doc) {
 
             // handle error
-            if (err) { return link.send(500, err); }
-            if (!doc) { return link.send(404, "item not found!"); }
+            if (err) { return callback(err); }
+            if (err) { return callback("NOT_FOUND"); }
 
             var path = M.app.getPath() + "/" + link.params.uploadDir + "/" + doc.filePath;
 
@@ -291,15 +349,13 @@ exports.remove = function (link) {
             fs.unlink(path, function (err) {
 
                 // handle error;
-                if (err) { return link.send(400, "Bad Request"); }
+                if (err) { return callback("BAD_REQUEST"); }
 
-                link.send(200);
+                callback(null);
             });
         });
     });
 }
-
-// private functions
 
 /*
  *  getCollection (string, function)
