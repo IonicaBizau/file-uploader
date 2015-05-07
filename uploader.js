@@ -111,13 +111,16 @@ module.exports = function(config) {
 /*
  * This function makes a request to the remove operation to delete a file
  * */
-function removeItem (itemId) {
+function removeItem (data) {
     var self = this;
 
-    // make the request
-    var data = {
-        itemId: itemId
+    // build data object
+    if (typeof data === 'string') {
+        data = {
+            itemId: data
+        };
     }
+
     self.link('remove', { data: data }, function (err, data) {
 
         if (err) {
