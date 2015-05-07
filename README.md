@@ -57,7 +57,8 @@ The most important parameters are set in the module upload operation `params` ar
             "params": [
                 {
                     "dsUpload": "temporarDS",
-                    "uploadDir": "path/to/upload/dir"
+                    "uploadDir": "path/to/upload/dir",
+                    "removeFileEvent": "exampleHandler"
                 }
             ]
         }
@@ -114,6 +115,9 @@ The module emits the following events:
 
 ### dev
 - add new features and fixes here
+
+### v0.3.7
+- Added `removeFileEvent` remove operation event
 
 ### v0.3.6
 - Updated to Bind `v0.3.2`
