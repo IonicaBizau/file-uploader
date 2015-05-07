@@ -116,6 +116,9 @@ The module emits the following events:
 ### dev
 - add new features and fixes here
 
+### v0.3.8
+- `removeItem` client function can receive object as parameter
+
 ### v0.3.7
 - Added `removeFileEvent` remove operation event
 
