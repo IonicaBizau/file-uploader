@@ -155,35 +155,42 @@ function checkFileType (fileInput) {
  *  This function appends to the upload form hidden inputs with values
  *  from the selected table item
  * */
-function setData (data, path) {
-
+function setData (data) {
     var self = this;
 
-    if (!path) {
-        path = "";
+    // create container for hidden data
+    var $form = $("form", self.dom);
+    if ($(".hiddenDataContainer", $form).length) {
+        var $container = $(".hiddenDataContainer", $form);
+    } else {
+        var $container = $("<div class='hiddenDataContainer hide'></div>");
+        $form.append($container);
     }
 
-    // build the inputs from the object
+    // add hidden inputs to container
+    $container.html(buildHiddenData(data, ""));
+}
+
+/*
+ * This function creates the hidden inputs that will be appended to the form
+ * */
+function buildHiddenData (data, path) {
+
+    var inputs = "";
     for (var key in data) {
         if (key[0] !== '_' && data.hasOwnProperty(key)) {
 
             // build the object path
-            var objPath = path.length ? (path + '.' + key) : key;
-
+            var objPath = path.length ? (path + "." + key) : key;
             if (typeof data[key] === "object") {
-
-                setData(data[key], objPath);
+                inputs += buildHiddenData(data[key], objPath);
             } else {
-
-                // get the form
-                var $form = $("form", self.dom);
-
-                //create the input
-                var el = '<input type="hidden" class="hide" name="' + objPath + '" value="' + data[key] + '">';
-                $form.append(el);
+                inputs += '<input type="hidden" class="hide" name="' + objPath + '" value="' + data[key] + '">';
             }
         }
     }
+
+    return inputs;
 }
 
 /*
