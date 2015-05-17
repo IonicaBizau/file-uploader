@@ -4,6 +4,7 @@
     "name": "file-uploader",
     "dependencies": [
         "/uploader.js",
+        "/ui.js",
         "github/jillix/bind/v0.3.2",
         "github/jillix/events/v0.3.0"
     ],

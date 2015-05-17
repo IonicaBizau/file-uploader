@@ -105,8 +105,39 @@ module.exports = function(config) {
 
     // listen to events
     self.on("setData", setData);
+    self.on("setTemplate", setTemplate);
     self.on("removeItem", removeItem);
 };
+
+function setTemplate (template) {
+    var self = this;
+
+    var template = typeof template === 'string' ? template : (template.id || template._id);
+    // check template
+    if (!template) {
+        // TODO handle error
+        return console.error('Invalid upload template');
+    }
+
+    self.emit('find', [template], function (err, templates) {
+
+        for (var key in templates) {
+            if (!templates.hasOwnProperty(key)) continue;
+
+            if (templates[key]._id === template) {
+                self.template = templates[key];
+            }
+        }
+
+        // TODO handle error
+        if (err || !self.template) {
+            return console.error(err);
+        }
+
+        // set current template
+        console.log(self.template);
+    });
+}
 
 /*
  * This function makes a request to the remove operation to delete a file
