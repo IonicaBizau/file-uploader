@@ -11,6 +11,7 @@
     "operations": [
         { "file": "operations.js", "function": "upload" },
         { "file": "operations.js", "function": "download" },
-        { "file": "operations.js", "function": "remove" }
+        { "file": "operations.js", "function": "remove" },
+        { "file": "operations.js", "function": "getUploadPermissions" }
     ]
 }

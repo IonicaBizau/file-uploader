@@ -27,15 +27,14 @@ function renderUi () {
     if (!self.template) {
         return;
     }
-    if (!self.uploaderConfig.container || !self.uploaderConfig.html) {
+    if (!self.uploaderConfig.uploaders || !self.uploaderConfig.html) {
         return console.error("Uploader configuration missing core properties");
     }
 
-    // get upload containers
-    var $uploaders = $(self.template.options.uploader.container);
-
-    // stop here if no uploaders found
-    if (!$uploaders.length) { return; }
+    // stop here if no uploaders configured
+    if (!Object.keys(self.uploaderConfig.uploaders).length) {
+        return;
+    }
 
     // get upload template html if not in cache
     self.uploadTemplateCache = self.uploadTemplateCache || {};
@@ -59,16 +58,27 @@ function renderUi () {
             self.uploadTemplateCache[self.template._id] = html;
 
             // render uploaders controls
-            $uploaders.html(self.uploadTemplateCache[self.template._id]);
-            setupControls.call(self);
-            self.emit("uploadersRendered");
+            finishRendering.call(self);
         });
     } else {
         // render uploaders controls
-        $uploaders.html(self.uploadTemplateCache[self.template._id]);
-        setupControls.call(self);
-        self.emit("uploadersRendered");
+        finishRendering.call(self);
     }
+}
+
+function finishRendering () {
+    var self = this;
+
+    // get permissions
+    self.link("getUploadPermissions", { data: { template: self.template } }, function (err, data) {
+
+        if (err) {
+            console.error(err);
+            return;
+        }
+
+        console.log(data);
+    });
 }
 
 function setupControls () {

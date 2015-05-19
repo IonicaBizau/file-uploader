@@ -1,6 +1,11 @@
 var fs = require("fs");
 var ObjectId = M.mongo.ObjectID;
 
+exports.getUploadPermissions = function (link) {
+    console.log('works');
+    link.send(200);
+}
+
 /*
  *  upload operation
  *

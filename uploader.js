@@ -154,12 +154,26 @@ function setTemplate (template) {
             return console.error(err);
         }
 
+        // clear the hidden input template value
+        if ($(".hiddenTemplateValue", self.dom).length) {
+            $(".hiddenTemplateValue", self.dom).val("");
+        }
+
         // do not render uploader controls if no configuration is present
         if (!self.template.options || !self.template.options.uploader) { return; }
         self.uploaderConfig = self.template.options.uploader;
 
         // clear the renderBuffer
         renderBuffer = [];
+
+        // add template id value to form
+        if ($(".hiddenTemplateValue", self.dom).length) {
+            $(".hiddenTemplateValue", self.dom).val("");
+        } else {
+            var $input = $("<input class='hiddenTemplateValue hide' type='hidden' name='templateId'>");
+            $("form", self.dom).append($input);
+            $input.val(self.template._id);
+        }
 
         // check if template needs to wait for an external event to begin rendering
         if (self.uploaderConfig.waitForEvent) {
