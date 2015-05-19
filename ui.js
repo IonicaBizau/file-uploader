@@ -70,14 +70,24 @@ function finishRendering () {
     var self = this;
 
     // get permissions
-    self.link("getUploadPermissions", { data: { template: self.template } }, function (err, data) {
+    self.link("getUploadPermissions", { data: { template: self.template } }, function (err, permissions) {
 
         if (err) {
             console.error(err);
             return;
         }
 
-        console.log(data);
+        for (var key in self.uploaderConfig.uploaders) {
+            if (!self.uploaderConfig.uploaders[key].container) continue;
+
+            var $container = $(self.uploaderConfig.uploaders[key].container);
+            if (permissions[key] && $container.length) {
+                $container.html(self.uploadTemplateCache[self.template._id]);
+            }
+        }
+
+        setupControls.call(self);
+        self.emit("uploadersRendered");
     });
 }
 

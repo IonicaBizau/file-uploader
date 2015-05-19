@@ -1,9 +1,55 @@
 var fs = require("fs");
 var ObjectId = M.mongo.ObjectID;
 
+/*
+ *  getUploadPermissions operation
+ *
+ *  This returns the user permisions to see and use the uploaders for a specific template
+ *
+ * */
 exports.getUploadPermissions = function (link) {
-    console.log('works');
-    link.send(200);
+
+    if (!link.data || !link.data.template) {
+        return link.send(400);
+    }
+
+    // get template from crud
+    M.emit("crud.read", {
+        templateId: "000000000000000000000000",
+        role: link.session.crudRole,
+        query: {
+            _id: ObjectId(link.data.template._id)
+        },
+        noCursor: true
+    }, function (err, template) {
+
+        if (err) {
+            return link.send(500, err);
+        }
+        if (!template[0]) {
+            return link.send(404, "Template not found");
+        }
+        template = template[0];
+
+        // check if uploader configuration is correct
+        if (!template.options || !template.options.uploader || !template.options.uploader.uploaders) {
+            return link.send(200, {});
+        }
+        if (!Object.keys(template.options.uploader.uploaders).length) {
+            return link.send(200, {});
+        }
+
+        var permissions = {};
+        for (var key in template.options.uploader.uploaders) {
+            if (!template.options.uploader.uploaders[key].access || template.options.uploader.uploaders[key].access.indexOf('u') === -1) {
+                permissions[key] = false;
+            } else {
+                permissions[key] = true;
+            }
+        }
+
+        link.send(200, permissions);
+    });
 }
 
 /*
