@@ -1,5 +1,6 @@
 var Bind = require("github/jillix/bind");
 var Events = require("github/jillix/events");
+var Ui = require("./ui");
 
 module.exports = function(config) {
 
@@ -11,6 +12,9 @@ module.exports = function(config) {
 
     // process config
     processConfig(config);
+
+    // call ui
+    Ui.call(self);
 
     // call events
     Events.call(self, config);
@@ -107,6 +111,22 @@ module.exports = function(config) {
     self.on("setData", setData);
     self.on("setTemplate", setTemplate);
     self.on("removeItem", removeItem);
+
+    // handle rendering / wait for external event before rendering to fix render order of uploader containers
+    self.waitForEvent = false;
+    self.renderingEnabled = false;
+    self.on("enableRendering", function () {
+
+        if (self.waitForEvent) {
+            self.renderingEnabled = false;
+
+            if (self.template) {
+                self.emit("renderUi");
+            }
+        } else {
+            self.renderingEnabled = true;
+        }
+    });
 };
 
 function setTemplate (template) {
@@ -134,8 +154,28 @@ function setTemplate (template) {
             return console.error(err);
         }
 
-        // set current template
-        console.log(self.template);
+        // do not render uploader controls if no configuration is present
+        if (!self.template.options || !self.template.options.uploader) { return; }
+        self.uploaderConfig = self.template.options.uploader;
+
+        // clear the renderBuffer
+        renderBuffer = [];
+
+        // check if template needs to wait for an external event to begin rendering
+        if (self.uploaderConfig.waitForEvent) {
+
+            // check if render enabled by event
+            if (self.renderingEnabled) {
+                self.emit("renderUi");
+            } else {
+                self.waitForEvent = true;
+            }
+
+            self.renderingEnabled = false;
+        } else {
+            self.renderingEnabled = false;
+            self.emit("renderUi");
+        }
     });
 }
 
