@@ -41,7 +41,7 @@ exports.getUploadPermissions = function (link) {
 
         var permissions = {};
         for (var key in template.options.uploader.uploaders) {
-            if (!template.options.uploader.uploaders[key].access || template.options.uploader.uploaders[key].access.indexOf('u') === -1) {
+            if (!template.options.uploader.uploaders[key].access || template.options.uploader.uploaders[key].access.indexOf("u") === -1) {
                 permissions[key] = false;
             } else {
                 permissions[key] = true;
@@ -75,6 +75,113 @@ exports.upload = function (link) {
         return link.send(400, { error: "Missing params: uploadDir or dsUpload." });
     }
 
+    // if a template id was provided handle this as a template upload
+    if (link.data && link.data.templateId) {
+        handleTemplateUpload(link);
+    } else {
+        // if no template id provide handle this as a normal upload
+        handleDefaultUpload(link);
+    }
+};
+
+function handleTemplateUpload (link) {
+
+    // get the uploaded file path
+    var uploadedFilePath = M.app.getPath() + "/" + link.files.file.path;
+
+    if (!link.data || !link.data.uploader) {
+        cleanUploadDirOnError(uploadedFilePath);
+        return link.send(400, "Uploader key missing");
+    }
+
+    // get template from crud
+    M.emit("crud.read", {
+        templateId: "000000000000000000000000",
+        role: link.session.crudRole,
+        query: {
+            _id: ObjectId(link.data.templateId)
+        },
+        noCursor: true
+    }, function (err, template) {
+
+        if (err) {
+            cleanUploadDirOnError(uploadedFilePath);
+            return link.send(500, { error: err });
+        }
+        if (!template[0]) {
+            cleanUploadDirOnError(uploadedFilePath);
+            return link.send(404, { error: "Template not found" });
+        }
+        template = template[0];
+
+        // check permissions
+        if (!template.options || !template.options.uploader || !template.options.uploader.uploaders) {
+            cleanUploadDirOnError(uploadedFilePath);
+            return link.send(400, { error: "Bad uploader template configuration" });
+        }
+        if (!Object.keys(template.options.uploader.uploaders).length) {
+            cleanUploadDirOnError(uploadedFilePath);
+            return link.send(400, { error: "Bad uploader template configuration" });
+        }
+
+        var uploaderConfig = template.options.uploader.uploaders[link.data.uploader];
+        if (!uploaderConfig || uploaderConfig.access.indexOf("u") === -1) {
+            cleanUploadDirOnError(uploadedFilePath);
+            return link.send(403, { error: "Permission denied" });
+        }
+
+        // accept types default value
+        var acceptTypes = uploaderConfig.acceptTypes || [];
+
+        // get the extension of the uploaded file
+        var fileExt = link.files.file.name;
+        fileExt = fileExt.substring(fileExt.lastIndexOf(".")) || "";
+
+        // check the file type
+        if (acceptTypes.length && !checkFileType(fileExt, acceptTypes)) {
+            cleanUploadDirOnError(uploadedFilePath);
+
+            // return bad request
+            return link.send(400, { error: "Invalid file extension." });
+        }
+
+        uploaderConfig.uploadDir = link.params.uploadDir + (uploaderConfig.uploadDir || "");
+        // get the absolute and relative path to the upload directory
+        getUploadDir({
+            uploadDir: uploaderConfig.uploadDir,
+            customUpload: uploaderConfig.customUpload,
+            data: link.data,
+            link: link
+        }, function (err, uploadDir, relativeUploadDir) {
+
+            cleanUploadDirOnError(uploadedFilePath);
+            if (err) { return link.send(400, { error: err }); }
+
+            // finish the upload
+            finishUpload({
+                uploadDir: uploadDir,
+                relativeUploadDir: relativeUploadDir,
+                link: link,
+                uploadFileEvent: uploaderConfig.uploadFileEvent,
+                fileExt: fileExt,
+                uploadedFilePath: uploadedFilePath,
+                template: true
+            }, function (err, args) {
+
+                if (err) {
+                    cleanUploadDirOnError(uploadedFilePath);
+                    return link.send(err.status, err.error);
+                }
+
+                // done
+                link.send(200, { success: args });
+            });
+        });
+    });
+}
+
+function handleDefaultUpload (link) {
+
     // accept types default value
     link.params.acceptTypes = link.params.acceptTypes || [];
 
@@ -88,133 +195,172 @@ exports.upload = function (link) {
     // check the file type
     if (link.params.acceptTypes.length && !checkFileType(fileExt, link.params.acceptTypes)) {
 
-        // delete the uploaded file (that is invalid)
-        fs.unlink(uploadedFilePath, function (err) {
-            if (err) { console.error(err); }
-        });
-
         // return bad request
+        cleanUploadDirOnError(uploadedFilePath);
         return link.send(400, { error: "Invalid file extension." });
     }
 
     // get the absolute and relative path to the upload directory
-    getUploadDir(link, function (err, uploadDir, relativeUploadDir) {
+    getUploadDir({
+        uploadDir: link.params.uploadDir,
+        customUpload: link.params.customUpload,
+        data: link.data,
+        link: link
+    }, function (err, uploadDir, relativeUploadDir) {
 
-        // handle error
+        cleanUploadDirOnError(uploadedFilePath);
         if (err) { return link.send(400, { error: err }); }
 
-        // get the generated id
-        var generatedId = uploadedFilePath.substring(uploadedFilePath.lastIndexOf("/") + 1);
+        // finish the upload
+        finishUpload({
+            uploadDir: uploadDir,
+            relativeUploadDir: relativeUploadDir,
+            link: link,
+            uploadFileEvent: link.params.uploadFileEvent,
+            fileExt: fileExt,
+            uploadedFilePath: uploadedFilePath
+        }, function (err, args) {
 
-        // final path
-        var newFilePath = uploadDir + "/" + generatedId + fileExt;
-
-        // get the collection from datasource
-        getCollection(link.params.dsUpload, function (err, collection) {
-
-            // handle error
-            if (err) { return link.send(400, { error: err }); }
-
-            // create doc to insert object
-            var docToInsert = {
-                // that contains the file name
-                fileName: link.files.file.name,
-                // the exension
-                extension: fileExt,
-                // the file path
-                absoluteFilePath: newFilePath,
-                // the generated file id
-                id: generatedId
-            };
-
-            // and the relative file path
-            docToInsert.filePath = relativeUploadDir + "/" + docToInsert.id + docToInsert.extension;
-
-            // get the uploadFileEvent
-            var uploadFileEvent = link.params.uploadFileEvent;
-
-            /*
-             *  getArgToSend ()
-             *
-             *  This returns the argument to send on the client side
-             * */
-            function getArgToSend (doc) {
-                var arg;
-                switch (link.params.emitArgument) {
-                    case "object":
-                        arg = doc;
-                        break;
-                    case "path":
-                        arg = doc.filePath;
-                        break;
-                    default:
-                        var emitArg = link.params.emitArgument;
-                        if (typeof emitArg === "object" && emitArg.type === "custom") {
-                            arg = doc[emitArg.value];
-                        } else {
-                            arg = doc.id;
-                        }
-                        break;
-                }
-
-                return arg;
+            if (err) {
+                cleanUploadDirOnError(uploadedFilePath);
+                return link.send(err.status, err.error);
             }
 
-            /*
-             *  insertFileDataInDatabase (link, object)
-             *
-             *  This function inserts an object with the file information in the
-             *  database
-             * */
-            function insertFileDataInDatabase (fileInfo) {
-
-                // inser the file information
-                collection.insert(fileInfo, function (err, doc) {
-
-                    // handle error
-                    if (err) { return link.send(400, { error: err }); }
-
-                    // inserted doc is the first one
-                    doc = doc[0];
-
-                    // and finally send the response
-                    link.send(200, { success: getArgToSend(doc) });
-                });
-            }
-
-            // rename the file (this just adds the file extension)
-            fs.rename(uploadedFilePath, newFilePath, function (err) {
-
-                // handle error
-                if (err) { return link.send(400, { error: err }); }
-
-                // if upladFileEvent is provided
-                if (uploadFileEvent) {
-
-                    // call for a custom handler
-                    M.emit(uploadFileEvent, {
-                        docToInsert: docToInsert,
-                        link: link
-                    }, function (err, newDocToInsert) {
-
-                        // handle error
-                        if (err) { return link.send(400, { error: err }); }
-
-                        // if we don't send any new document, docToInsert will be inserted
-                        newDocToInsert = newDocToInsert || docToInsert;
-
-                        // insert the file data in the database
-                        insertFileDataInDatabase(newDocToInsert);
-                    });
-                // if it is not provided
-                } else {
-                    // insert data directly
-                    insertFileDataInDatabase(docToInsert);
-                }
-            });
+            // done
+            link.send(200, { success: args });
         });
     });
-};
+}
+
+/*
+ *  This function completes the file upload for both upload methods
+ *
+ *  Arguments
+ *    @options: object containing:
+ *      - uploadDir
+ *      - realtiveUploadDir
+ *      - link
+ *      - uploadFileEvent
+ *      - fileExt
+ *      - uploadedFilePath
+ *      - template (true/false)
+ *    @callback: the callback function
+ * */
+function finishUpload (options, callback) {
+
+    // build required information
+    var generatedId = options.uploadedFilePath.substring(options.uploadedFilePath.lastIndexOf("/") + 1);
+    var newFilePath = options.uploadDir + "/" + generatedId + options.fileExt;
+
+    // get the collection from datasource
+    getCollection(options.link.params.dsUpload, function (err, collection) {
+
+        // handle error
+        if (err) { return callback({ status: 500, error: collection }); }
+
+        // create doc to insert object
+        var docToInsert = {
+            fileName: options.link.files.file.name,
+            extension: options.fileExt,
+            absoluteFilePath: newFilePath,
+            filePath: options.relativeUploadDir + "/" + generatedId + options.fileExt,
+            id: generatedId
+        };
+
+        // add template id and uploader if this is a template upload
+        if (options.template && options.link.data && options.link.data.templateId && options.link.data.uploader) {
+            docToInsert.template = options.link.data.templateId;
+            docToInsert.uploader = options.link.data.uploader;
+        }
+
+        /*
+         *  getArgToSend ()
+         *
+         *  This returns the argument to send on the client side
+         * */
+        function getArgToSend (doc) {
+            var arg;
+            switch (options.link.params.emitArgument) {
+                case "object":
+                    arg = doc;
+                    break;
+                case "path":
+                    arg = doc.filePath;
+                    break;
+                default:
+                    var emitArg = options.link.params.emitArgument;
+                    if (typeof emitArg === "object" && emitArg.type === "custom") {
+                        arg = doc[emitArg.value];
+                    } else {
+                        arg = doc.id;
+                    }
+                    break;
+            }
+
+            return arg;
+        }
+
+        /*
+         *  insertFileDataInDatabase (fileInfo)
+         *
+         *  This function inserts an object with the file information in the
+         *  database
+         * */
+        function insertFileDataInDatabase (fileInfo) {
+
+            // inser the file information
+            collection.insert(fileInfo, function (err, doc) {
+
+                // handle error
+                if (err) { return callback({ status: 500, error: err }); }
+
+                // inserted doc is the first one
+                doc = doc[0];
+
+                // and finally send the response
+                return callback(null, getArgToSend(doc));
+            });
+        }
+
+        // rename the file (this just adds the file extension)
+        fs.rename(options.uploadedFilePath, newFilePath, function (err) {
+
+            // handle error
+            if (err) { return callback({ status: 500, error: err }); }
+
+            // if upladFileEvent is provided
+            if (options.uploadFileEvent) {
+
+                // call for a custom handler
+                M.emit(options.uploadFileEvent, {
+                    docToInsert: docToInsert,
+                    link: options.link
+                }, function (err, newDocToInsert) {
+
+                    // handle error
+                    if (err) { return callback({ status: 500, error: err }); }
+
+                    // if we don't send any new document, docToInsert will be inserted
+                    newDocToInsert = newDocToInsert || docToInsert;
+
+                    // insert the file data in the database
+                    insertFileDataInDatabase(newDocToInsert);
+                });
+            // if it is not provided
+            } else {
+                // insert data directly
+                insertFileDataInDatabase(docToInsert);
+            }
+        });
+    });
+}
+
+// delete the uploaded file if an error occured or invalid file
+function cleanUploadDirOnError (filePath) {
+    fs.unlink(filePath, function (err) {
+        if (err) { console.error(err); }
+    });
+}
 
 /*
  *  download operation
@@ -432,23 +578,31 @@ function getCollection (paramsDs, callback) {
 
 /*
  *  This function looks for a custom handler to get the upload dir
+ *
+ *  Arguments
+ *    @options: object containing:
+ *      - uploadDir
+ *      - customUpload
+ *      - data
+ *      - link
+ *    @callback: the callback function
  * */
-function getUploadDir (link, callback) {
+function getUploadDir (options, callback) {
 
-    var relativeUploadDir = link.params.uploadDir;
+    var relativeUploadDir = options.uploadDir;
 
     // default behavior? (not a custom upload dir handler event)
-    if (!link.params.customUpload) {
-        var uploadDir = M.app.getPath() + "/" + link.params.uploadDir;
+    if (!options.customUpload) {
+        var uploadDir = M.app.getPath() + "/" + options.uploadDir;
         return callback(null, uploadDir, relativeUploadDir);
     }
 
     // there is a customUpload handler event
-    M.emit(link.params.customUpload, { data: link.data, link: link }, function (customDir) {
+    M.emit(options.customUpload, { data: options.data, link: options.link }, function (customDir) {
 
         customDir = customDir || "";
         var customDirs = customDir.split("/");
-        var uploadDir = M.app.getPath() + "/" + link.params.uploadDir;
+        var uploadDir = M.app.getPath() + "/" + options.uploadDir;
         var DIRS_TO_CREATE = customDirs.length;
 
         if (!DIRS_TO_CREATE) {

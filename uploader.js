@@ -155,8 +155,8 @@ function setTemplate (template) {
         }
 
         // clear the hidden input template value
-        if ($(".hiddenTemplateValue", self.dom).length) {
-            $(".hiddenTemplateValue", self.dom).val("");
+        if ($(".hiddenTemplateValue", $("form", self.dom)).length) {
+            $(".hiddenTemplateValue", $("form", self.dom)).val("");
         }
 
         // do not render uploader controls if no configuration is present
@@ -167,8 +167,8 @@ function setTemplate (template) {
         renderBuffer = [];
 
         // add template id value to form
-        if ($(".hiddenTemplateValue", self.dom).length) {
-            $(".hiddenTemplateValue", self.dom).val("");
+        if ($(".hiddenTemplateValue", $("form", self.dom)).length) {
+            $(".hiddenTemplateValue", $("form", self.dom)).val(self.template._id);
         } else {
             var $input = $("<input class='hiddenTemplateValue hide' type='hidden' name='templateId'>");
             $("form", self.dom).append($input);

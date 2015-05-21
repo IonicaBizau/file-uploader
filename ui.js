@@ -68,6 +68,7 @@ function renderUi () {
 
 function finishRendering () {
     var self = this;
+    self.uploaders = {};
 
     // get permissions
     self.link("getUploadPermissions", { data: { template: self.template } }, function (err, permissions) {
@@ -82,7 +83,9 @@ function finishRendering () {
 
             var $container = $(self.uploaderConfig.uploaders[key].container);
             if (permissions[key] && $container.length) {
-                $container.html(self.uploadTemplateCache[self.template._id]);
+                $container.html($(self.uploadTemplateCache[self.template._id]));
+                self.uploaders[key] = {};
+                self.uploaders[key].ref = $container;
             }
         }
 
@@ -96,17 +99,34 @@ function setupControls () {
     var $lastUploadUsed = '';
 
     // listen for uploader events
-    $(self.uploaderConfig.controls.select).on("click", function () {
-        $("[type=file]", self.dom).click();
-        $lastUploadUsed = $(this).parent().find(self.uploaderConfig.controls.fileName);
-    });
+    for (var uploader in self.uploaders) {
+        if (!self.uploaders.hasOwnProperty(uploader)) continue;
 
-    $(self.uploaderConfig.controls.upload).on("click", function () {
-        $(self.config.options.ui.upload, self.dom).click();
-    });
+        (function (uploader) {
+            self.uploaders[uploader].ref.find(self.uploaderConfig.controls.select).on("click", function () {
+                $("[type=file]", $("form", self.dom)).click();
+
+                // slect the filename in next to the select
+                $lastUploadUsed = $(self.uploaderConfig.controls.fileName, self.uploaders[uploader].ref.has($(this)));
+
+                // add uploader value to form
+                if ($(".hiddenUploaderValue", $("form", self.dom)).length) {
+                    $(".hiddenUploaderValue", $("form", self.dom)).val(uploader);
+                } else {
+                    var $input = $("<input class='hiddenUploaderValue hide' type='hidden' name='uploader'>");
+                    $("form", self.dom).append($input);
+                    $input.val(uploader);
+                }
+            });
+
+            self.uploaders[uploader].ref.find(self.uploaderConfig.controls.upload).on("click", function () {
+                $(self.config.options.ui.upload, $("form", self.dom)).click();
+            });
+        })(uploader);
+    }
 
     // listen for file-name value change
-    $("[type=file]", self.dom).on("change", function () {
+    $("[type=file]", $("form", self.dom)).on("change", function () {
         if (!$(this).val()) {
             return resetFileName($(self.uploaderConfig.controls.fileName));
         }
@@ -142,6 +162,11 @@ function resetControls () {
 
     // reset upload value
     $("[type=file]", self.dom).val("");
+
+    // clear the hidden input uploader value
+    if ($(".hiddenUploaderValue", $("form", self.dom)).length) {
+        $(".hiddenUploaderValue", $("form", self.dom)).val("");
+    }
 }
 
 module.exports = init;
