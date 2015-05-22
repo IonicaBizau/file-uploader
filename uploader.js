@@ -1,3 +1,4 @@
+M.wrap('github/jillix/file-uploader/new-uploader-dev5/uploader.js', function (require, module, exports) {
 var Bind = require("github/jillix/bind");
 var Events = require("github/jillix/events");
 var Ui = require("./ui");
@@ -286,3 +287,5 @@ function processConfig (config) {
     config.options = config.options || {};
     config.options.acceptTypes = config.options.acceptTypes || [];
 }
+
+return module; });

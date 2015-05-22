@@ -1,3 +1,4 @@
+M.wrap('github/jillix/file-uploader/new-uploader-dev5/ui.js', function (require, module, exports) {
 function init () {
     var self = this;
 
@@ -170,3 +171,5 @@ function resetControls () {
 }
 
 module.exports = init;
+
+return module; });

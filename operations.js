@@ -154,8 +154,10 @@ function handleTemplateUpload (link) {
             link: link
         }, function (err, uploadDir, relativeUploadDir) {
 
-            cleanUploadDirOnError(uploadedFilePath);
-            if (err) { return link.send(400, { error: err }); }
+            if (err) {
+                cleanUploadDirOnError(uploadedFilePath);
+                return link.send(400, { error: err });
+            }
 
             // finish the upload
             finishUpload({
@@ -208,8 +210,10 @@ function handleDefaultUpload (link) {
         link: link
     }, function (err, uploadDir, relativeUploadDir) {
 
-        cleanUploadDirOnError(uploadedFilePath);
-        if (err) { return link.send(400, { error: err }); }
+        if (err) {
+            cleanUploadDirOnError(uploadedFilePath);
+            return link.send(400, { error: err });
+        }
 
         // finish the upload
         finishUpload({
@@ -430,7 +434,7 @@ exports.download = function (link) {
 
             // handle files uploaded with template upload
             if (doc.template && doc.uploader) {
-                if (!template || !uploader || doc.template !== template || doc.uploader !== uploader) { return link.send(404, "Bad uploader and/or template value!"); }
+                if (!template || !uploader || doc.template !== template || doc.uploader !== uploader) { return link.send(400, "Bad uploader and/or template value!"); }
 
                 // fetch template
                 M.emit("crud.read", {
@@ -515,28 +519,119 @@ exports.remove = function (link) {
     }
 
     // get the itemId
-    var itemId;
+    var itemId, template, uploader;
     if (link.query.id) {
         itemId = link.query.id;
-    } else if (link.data.itemId) {
-        itemId = link.data.itemId;
+        template = link.query.template;
+        uploader = link.query.uploader;
+    } else if (link.data) {
+        if (link.data.itemId) {
+            itemId = link.data.itemId;
+            template = link.data.template;
+            uploader = link.data.uploader;
+        } else {
+            return link.send(400);
+        }
     }
 
     if (!itemId) {
         return link.send(400);
     }
 
-    // check if a custom handler exists
-    if (link.params.removeFileEvent) {
-        // call the handler
-        M.emit(link.params.removeFileEvent, {
-            link: link
-        }, function (err) {
+    getCollection(link.params.dsUpload, function (err, collection) {
 
-            if (err) { return link.send(400, err); }
+        // handle error
+        if (err) { return link.send(500, err); }
 
+        // find and remove the item from db
+        collection.findOne({ _id: ObjectId(itemId)}, function (err, doc) {
+
+            // handle error
+            if (err) { return link.send(500, err); }
+            if (!doc) { return link.send(404, "item not found!"); }
+
+            // handle files uploaded with template upload
+            if (doc.template && doc.uploader) {
+                if (!template || !uploader || doc.template !== template || doc.uploader !== uploader) { return link.send(400, "Bad uploader and/or template value!"); }
+
+                // fetch template
+                M.emit("crud.read", {
+                    templateId: "000000000000000000000000",
+                    role: link.session.crudRole,
+                    query: {
+                        _id: ObjectId(template)
+                    },
+                    noCursor: true
+                }, function (err, template) {
+
+                    if (err) {
+                        return link.send(500, err);
+                    }
+                    if (!template[0]) {
+                        return link.send(404, "Template not found");
+                    }
+                    template = template[0];
+
+                    // check permissions
+                    if (!template.options || !template.options.uploader || !template.options.uploader.uploaders) {
+                        return link.send(400, "Bad uploader template configuration");
+                    }
+                    if (!Object.keys(template.options.uploader.uploaders).length) {
+                        return link.send(400, "Bad uploader template configuration");
+                    }
+
+                    var uploaderConfig = template.options.uploader.uploaders[uploader];
+                    if (!uploaderConfig || uploaderConfig.access.indexOf("r") === -1) {
+                        return link.send(403, "Permission denied");
+                    }
+
+                    // finish the remove operation
+                    finishFileRemove({
+                        removeFileEvent: link.params.removeFileEvent,
+                        doc: doc
+                    });
+                });
+            } else {
+                // finish the remove operation
+                finishFileRemove({
+                    removeFileEvent: link.params.removeFileEvent,
+                    doc: doc
+                });
+            }
+        });
+    });
+
+    function finishFileRemove (options) {
+        // check if a custom handler exists
+        if (options.removeFileEvent) {
+            // call the handler
+            M.emit(options.removeFileEvent, {
+                link: link
+            }, function (err) {
+
+                if (err) { return link.send(400, err); }
+
+                // remove file
+                removeFile(link, options.doc, function (err) {
+
+                    // handle error
+                    if (err) {
+                        if (err === "NOT_FOUND") {
+                            return link.send(404, "File not found!");
+                        } else if (err === "BAD_REQUEST") {
+                            return link.send(400, "Bad request!");
+                        } else {
+                            return link.send(500, err);
+                        }
+                    }
+
+                    // all done
+                    link.send(200);
+                });
+            });
+        } else {
             // remove file
-            removeFile(link, itemId, function (err) {
+            removeFile(link, options.doc, function (err) {
 
                 // handle error
                 if (err) {
@@ -552,37 +647,19 @@ exports.remove = function (link) {
                 // all done
                 link.send(200);
             });
-        });
-    } else {
-        // remove file
-        removeFile(link, itemId, function (err) {
-
-            // handle error
-            if (err) {
-                if (err === "NOT_FOUND") {
-                    return link.send(404, "File not found!");
-                } else if (err === "BAD_REQUEST") {
-                    return link.send(400, "Bad request!");
-                } else {
-                    return link.send(500, err);
-                }
-            }
-
-            // all done
-            link.send(200);
-        });
+        }
     }
 }
 
 // private functions
 
 /*
- *  removedFile (link, itemId, function)
+ *  removedFile (link, doc, function)
  *
  *  This removes a document form a collection and then deletes it
  *  from the upload dir
  * */
-function removeFile (link, itemId, callback) {
+function removeFile (link, doc, callback) {
 
     getCollection(link.params.dsUpload, function (err, collection) {
 
@@ -590,11 +667,10 @@ function removeFile (link, itemId, callback) {
         if (err) { return callback(err); }
 
         // find and remove the item from db
-        collection.findAndRemove({ _id: ObjectId(itemId)}, function (err, doc) {
+        collection.remove({ _id: ObjectId(doc._id)}, function (err) {
 
             // handle error
             if (err) { return callback(err); }
-            if (err) { return callback("NOT_FOUND"); }
 
             var path = M.app.getPath() + "/" + link.params.uploadDir + "/" + doc.filePath;
 
