@@ -375,12 +375,16 @@ exports.download = function (link) {
     }
 
     // get the itemId
-    var itemId;
+    var itemId, template, uploader;
     if (link.query.id) {
         itemId = link.query.id;
+        template = link.query.template;
+        uploader = link.query.uploader;
     } else if (link.data) {
         if (link.data.itemId) {
             itemId = link.data.itemId;
+            template = link.data.template;
+            uploader = link.data.uploader;
         } else {
             return link.send(400);
         }
@@ -424,26 +428,78 @@ exports.download = function (link) {
             if (err) { return link.send(500, err); }
             if (!doc) { return link.send(404, "item not found!"); }
 
-            // look for a path custom handler
-            if (link.params.customPathHandler) {
+            // handle files uploaded with template upload
+            if (doc.template && doc.uploader) {
+                if (!template || !uploader || doc.template !== template || doc.uploader !== uploader) { return link.send(404, "Bad uploader and/or template value!"); }
 
-                // call the handler
-                M.emit(link.params.customPathHandler, {
-                    doc: doc,
-                    link: link,
-                }, function (path) {
+                // fetch template
+                M.emit("crud.read", {
+                    templateId: "000000000000000000000000",
+                    role: link.session.crudRole,
+                    query: {
+                        _id: ObjectId(template)
+                    },
+                    noCursor: true
+                }, function (err, template) {
 
-                    // pipe the file
-                    pipeFile(doc, path);
+                    if (err) {
+                        return link.send(500, err);
+                    }
+                    if (!template[0]) {
+                        return link.send(404, "Template not found");
+                    }
+                    template = template[0];
+
+                    // check permissions
+                    if (!template.options || !template.options.uploader || !template.options.uploader.uploaders) {
+                        return link.send(400, "Bad uploader template configuration");
+                    }
+                    if (!Object.keys(template.options.uploader.uploaders).length) {
+                        return link.send(400, "Bad uploader template configuration");
+                    }
+
+                    var uploaderConfig = template.options.uploader.uploaders[uploader];
+                    if (!uploaderConfig || uploaderConfig.access.indexOf("d") === -1) {
+                        return link.send(403, "Permission denied");
+                    }
+
+                    // finish the download
+                    finishFileDownload({
+                        doc: doc,
+                        customPathHandler: uploaderConfig.customPathHandler
+                    });
                 });
             } else {
-                var path = M.app.getPath() + "/" + link.params.uploadDir + "/" + doc.filePath;
-
-                // pipe the file
-                pipeFile(doc, path);
+                // finish the download
+                finishFileDownload({
+                    doc: doc,
+                    customPathHandler: link.params.customPathHandler
+                });
             }
         });
     });
+
+    function finishFileDownload (options) {
+
+        // look for a path custom handler
+        if (options.customPathHandler) {
+
+            // call the handler
+            M.emit(options.customPathHandler, {
+                doc: options.doc,
+                link: link,
+            }, function (path) {
+
+                // pipe the file
+                pipeFile(options.doc, path);
+            });
+        } else {
+            var path = M.app.getPath() + "/" + link.params.uploadDir + "/" + options.doc.filePath;
+
+            // pipe the file
+            pipeFile(options.doc, path);
+        }
+    }
 }
 
 /*
