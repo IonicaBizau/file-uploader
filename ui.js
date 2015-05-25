@@ -1,4 +1,4 @@
-M.wrap('github/jillix/file-uploader/new-uploader-dev5/ui.js', function (require, module, exports) {
+
 function init () {
     var self = this;
 
@@ -16,9 +16,33 @@ function init () {
     self.on("renderUi", renderUi);
 
     // reset controls after upload finished
-    self.on("fileUploaded" , resetControls);
-    self.on("uploadFailed" , resetControls);
+    self.on("fileUploaded", resetControls);
+    self.on("uploadFailed", resetControls);
     self.on("reset", resetControls);
+
+    self.on("getDocuments", getDocuments);
+}
+
+function getDocuments (request, callback) {
+    var self = this;
+
+    if (!callback) {
+        return console.error("No callback was provided");
+    }
+
+    // check if a template exists
+    if (!request.template || !self.template) {
+        return callback("A valid template needs to be provided");
+    }
+    request.template = request.template || self.template;
+
+    // check if uploader value is provided
+    if (!request.uploader) {
+        return callback("A valid uploader value needs to be provided");
+    }
+
+    // fetch documents
+    self.link("getDocuments", { data: request }, callback);
 }
 
 function renderUi () {
@@ -171,5 +195,3 @@ function resetControls () {
 }
 
 module.exports = init;
-
-return module; });

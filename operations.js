@@ -367,6 +367,26 @@ function cleanUploadDirOnError (filePath) {
 }
 
 /*
+ *  getDocuments operation
+ *
+ *  This function returns the documents of a template uploader
+ *
+ * */
+ exports.getDocuments = function (link) {
+
+    if (!link.data || !link.data.template || !link.data.uploader) {
+        return link.send(400, "BAD_REQUEST");
+    }
+
+    var template = link.data.template;
+    if (typeof link.data.template === "object") {
+        template = template._id;
+    }
+
+    return link.send(200);
+ }
+
+/*
  *  download operation
  *
  *  This is the download operation which gets the id of a file and returns it
