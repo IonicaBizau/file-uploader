@@ -379,11 +379,73 @@ function cleanUploadDirOnError (filePath) {
     }
 
     var template = link.data.template;
+    var uploader = link.data.uploader;
     if (typeof link.data.template === "object") {
         template = template._id;
     }
 
-    return link.send(200);
+    // fetch template
+    M.emit("crud.read", {
+        templateId: "000000000000000000000000",
+        role: link.session.crudRole,
+        query: {
+            _id: ObjectId(template)
+        },
+        noCursor: true
+    }, function (err, template) {
+
+        if (err) {
+            return link.send(500, err);
+        }
+        if (!template[0]) {
+            return link.send(404, "Template not found");
+        }
+        template = template[0];
+
+        // check permissions
+        if (!template.options || !template.options.uploader || !template.options.uploader.uploaders) {
+            return link.send(400, "Bad uploader template configuration");
+        }
+        if (!Object.keys(template.options.uploader.uploaders).length) {
+            return link.send(400, "Bad uploader template configuration");
+        }
+
+        var uploaderConfig = template.options.uploader.uploaders[uploader];
+        if (!uploaderConfig || uploaderConfig.access.indexOf("d") === -1) {
+            return link.send(200, {});
+        }
+
+        // check the remove permissions
+        if (!uploaderConfig || uploaderConfig.access.indexOf("r") === -1) {
+            var removeForbidden = true;
+        }
+
+        // build fetch query
+        var query = {
+            template: template._id.toString(),
+            uploader: uploader
+        };
+        link.data.query = link.data.query || {};
+        for (var key in link.data.query) {
+            query[key] = link.data.query[key];
+        }
+        link.data.options = link.data.options || {};
+
+        // fetch documents
+        getCollection(link.params.dsUpload, function (err, collection) {
+
+            // handle error
+            if (err) { return link.send(500, err); }
+
+            collection.find(query, link.data.options).toArray(function (err, docs) {
+
+                // handle error
+                if (err) { return link.send(500, err); }
+
+                link.send(200, { docs: docs, removeForbidden: removeForbidden || false });
+            });
+        });
+    });
  }
 
 /*
