@@ -1,6 +1,8 @@
 var fs = require("fs");
 var ObjectId = M.mongo.ObjectID;
 
+
+
 /*
  *  getUploadPermissions operation
  *
@@ -41,11 +43,11 @@ exports.getUploadPermissions = function (link) {
 
         var permissions = {};
         for (var key in template.options.uploader.uploaders) {
-            if (!template.options.uploader.uploaders[key].access || template.options.uploader.uploaders[key].access.indexOf("u") === -1) {
-                permissions[key] = false;
-            } else {
-                permissions[key] = true;
-            }
+            (function (key) {
+                checkPermissions("upload", link, template.options.uploader.uploaders[key], function (isAllowed) {
+                    permissions[key] = isAllowed;
+                });
+            })(key);
         }
 
         link.send(200, permissions);
@@ -114,7 +116,7 @@ function handleTemplateUpload (link) {
         }
         template = template[0];
 
-        // check permissions
+        // check uploader configuration
         if (!template.options || !template.options.uploader || !template.options.uploader.uploaders) {
             cleanUploadDirOnError(uploadedFilePath);
             return link.send(400, { error: "Bad uploader template configuration" });
@@ -123,60 +125,63 @@ function handleTemplateUpload (link) {
             cleanUploadDirOnError(uploadedFilePath);
             return link.send(400, { error: "Bad uploader template configuration" });
         }
-
         var uploaderConfig = template.options.uploader.uploaders[link.data.uploader];
-        if (!uploaderConfig || uploaderConfig.access.indexOf("u") === -1) {
-            cleanUploadDirOnError(uploadedFilePath);
-            return link.send(403, { error: "Permission denied" });
-        }
 
-        // accept types default value
-        var acceptTypes = uploaderConfig.acceptTypes || [];
+        // check permissions
+        checkPermissions("upload", link, uploaderConfig, function (isAllowed) {
 
-        // get the extension of the uploaded file
-        var fileExt = link.files.file.name;
-        fileExt = fileExt.substring(fileExt.lastIndexOf(".")) || "";
-
-        // check the file type
-        if (acceptTypes.length && !checkFileType(fileExt, acceptTypes)) {
-            cleanUploadDirOnError(uploadedFilePath);
-
-            // return bad request
-            return link.send(400, { error: "Invalid file extension." });
-        }
-
-        uploaderConfig.uploadDir = link.params.uploadDir + (uploaderConfig.uploadDir || "");
-        // get the absolute and relative path to the upload directory
-        getUploadDir({
-            uploadDir: uploaderConfig.uploadDir,
-            customUpload: uploaderConfig.customUpload,
-            data: link.data,
-            link: link
-        }, function (err, uploadDir, relativeUploadDir) {
-
-            if (err) {
-                cleanUploadDirOnError(uploadedFilePath);
-                return link.send(400, { error: err });
+            if (!isAllowed) {
+                return link.send(403, { error: "Permission denied" });
             }
 
-            // finish the upload
-            finishUpload({
-                uploadDir: uploadDir,
-                relativeUploadDir: relativeUploadDir,
-                link: link,
-                uploadFileEvent: uploaderConfig.uploadFileEvent,
-                fileExt: fileExt,
-                uploadedFilePath: uploadedFilePath,
-                template: true
-            }, function (err, args) {
+            // accept types default value
+            var acceptTypes = uploaderConfig.acceptTypes || [];
+
+            // get the extension of the uploaded file
+            var fileExt = link.files.file.name;
+            fileExt = fileExt.substring(fileExt.lastIndexOf(".")) || "";
+
+            // check the file type
+            if (acceptTypes.length && !checkFileType(fileExt, acceptTypes)) {
+                cleanUploadDirOnError(uploadedFilePath);
+
+                // return bad request
+                return link.send(400, { error: "Invalid file extension." });
+            }
+
+            uploaderConfig.uploadDir = link.params.uploadDir + (uploaderConfig.uploadDir || "");
+            // get the absolute and relative path to the upload directory
+            getUploadDir({
+                uploadDir: uploaderConfig.uploadDir,
+                customUpload: uploaderConfig.customUpload,
+                data: link.data,
+                link: link
+            }, function (err, uploadDir, relativeUploadDir) {
 
                 if (err) {
                     cleanUploadDirOnError(uploadedFilePath);
-                    return link.send(err.status, err.error);
+                    return link.send(400, { error: err });
                 }
 
-                // done
-                link.send(200, { success: args });
+                // finish the upload
+                finishUpload({
+                    uploadDir: uploadDir,
+                    relativeUploadDir: relativeUploadDir,
+                    link: link,
+                    uploadFileEvent: uploaderConfig.uploadFileEvent,
+                    fileExt: fileExt,
+                    uploadedFilePath: uploadedFilePath,
+                    template: true
+                }, function (err, args) {
+
+                    if (err) {
+                        cleanUploadDirOnError(uploadedFilePath);
+                        return link.send(err.status, err.error);
+                    }
+
+                    // done
+                    link.send(200, { success: args });
+                });
             });
         });
     });
@@ -402,47 +407,51 @@ function cleanUploadDirOnError (filePath) {
         }
         template = template[0];
 
-        // check permissions
+        // check uploader config
         if (!template.options || !template.options.uploader || !template.options.uploader.uploaders) {
             return link.send(400, "Bad uploader template configuration");
         }
         if (!Object.keys(template.options.uploader.uploaders).length) {
             return link.send(400, "Bad uploader template configuration");
         }
-
         var uploaderConfig = template.options.uploader.uploaders[uploader];
-        if (!uploaderConfig || uploaderConfig.access.indexOf("d") === -1) {
-            return link.send(200, {});
-        }
 
-        // check the remove permissions
-        if (!uploaderConfig || uploaderConfig.access.indexOf("r") === -1) {
-            var removeForbidden = true;
-        }
+        // check permissions
+        checkPermissions("download", link, uploaderConfig, function (isAllowed) {
 
-        // build fetch query
-        var query = {
-            template: template._id.toString(),
-            uploader: uploader
-        };
-        link.data.query = link.data.query || {};
-        for (var key in link.data.query) {
-            query[key] = link.data.query[key];
-        }
-        link.data.options = link.data.options || {};
+            if (!isAllowed) {
+                return link.send(200, {});
+            }
 
-        // fetch documents
-        getCollection(link.params.dsUpload, function (err, collection) {
+            // check the remove permissions
+            if (!uploaderConfig || uploaderConfig.access.indexOf("r") === -1) {
+                var removeForbidden = true;
+            }
 
-            // handle error
-            if (err) { return link.send(500, err); }
+            // build fetch query
+            var query = {
+                template: template._id.toString(),
+                uploader: uploader
+            };
+            link.data.query = link.data.query || {};
+            for (var key in link.data.query) {
+                query[key] = link.data.query[key];
+            }
+            link.data.options = link.data.options || {};
 
-            collection.find(query, link.data.options).toArray(function (err, docs) {
+            // fetch documents
+            getCollection(link.params.dsUpload, function (err, collection) {
 
                 // handle error
                 if (err) { return link.send(500, err); }
 
-                link.send(200, { docs: docs, removeForbidden: removeForbidden || false });
+                collection.find(query, link.data.options).toArray(function (err, docs) {
+
+                    // handle error
+                    if (err) { return link.send(500, err); }
+
+                    link.send(200, { docs: docs, removeForbidden: removeForbidden || false });
+                });
             });
         });
     });
@@ -536,23 +545,27 @@ exports.download = function (link) {
                     }
                     template = template[0];
 
-                    // check permissions
+                    // check uploader config
                     if (!template.options || !template.options.uploader || !template.options.uploader.uploaders) {
                         return link.send(400, "Bad uploader template configuration");
                     }
                     if (!Object.keys(template.options.uploader.uploaders).length) {
                         return link.send(400, "Bad uploader template configuration");
                     }
-
                     var uploaderConfig = template.options.uploader.uploaders[uploader];
-                    if (!uploaderConfig || uploaderConfig.access.indexOf("d") === -1) {
-                        return link.send(403, "Permission denied");
-                    }
 
-                    // finish the download
-                    finishFileDownload({
-                        doc: doc,
-                        customPathHandler: uploaderConfig.customPathHandler
+                    // check permissions
+                    checkPermissions("download", link, uploaderConfig, function (isAllowed) {
+
+                        if (!isAllowed) {
+                            return link.send(403, "Permission denied");
+                        }
+
+                        // finish the download
+                        finishFileDownload({
+                            doc: doc,
+                            customPathHandler: uploaderConfig.customPathHandler
+                        });
                     });
                 });
             } else {
@@ -661,16 +674,20 @@ exports.remove = function (link) {
                     if (!Object.keys(template.options.uploader.uploaders).length) {
                         return link.send(400, "Bad uploader template configuration");
                     }
-
                     var uploaderConfig = template.options.uploader.uploaders[uploader];
-                    if (!uploaderConfig || uploaderConfig.access.indexOf("r") === -1) {
-                        return link.send(403, "Permission denied");
-                    }
 
-                    // finish the remove operation
-                    finishFileRemove({
-                        removeFileEvent: link.params.removeFileEvent,
-                        doc: doc
+                    // check permissions
+                    checkPermissions("remove", link, uploaderConfig, function (isAllowed) {
+
+                        if (!isAllowed) {
+                            return link.send(403, "Permission denied");
+                        }
+
+                        // finish the remove operation
+                        finishFileRemove({
+                            removeFileEvent: link.params.removeFileEvent,
+                            doc: doc
+                        });
                     });
                 });
             } else {
@@ -734,6 +751,52 @@ exports.remove = function (link) {
 }
 
 // private functions
+
+/*
+ *  checkPermissions (method, link, template, uploader)
+ *
+ *  This returns true/false if the user has permission to execute the given method
+ *
+ * */
+ function checkPermissions (method, link, uploaderConfig, callback) {
+
+    // uploader config is mandatory
+    if (!uploaderConfig) {
+        return callback(false);
+    }
+
+    // check if a custom handler for permissions exists
+    if (uploaderConfig.customPermissions) {
+        M.emit(uploaderConfig.customPermissions, {
+            method: method,
+            link: link,
+            config: uploaderConfig
+        }, callback);
+    } else {
+
+        // check uploader access for permissions
+        switch (method) {
+            case "upload":
+                method = "u";
+                break;
+            case "remove":
+                method = "r";
+                break;
+            case "download":
+                method = "d";
+                break
+            default:
+                return callback(false);
+        }
+
+        var isAllowed = true;
+        if (!uploaderConfig.access || uploaderConfig.access.indexOf(method) === -1) {
+            isAllowed = false;
+        }
+
+        return callback(isAllowed);
+    }
+ }
 
 /*
  *  removedFile (link, doc, function)

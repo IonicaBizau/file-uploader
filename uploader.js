@@ -1,4 +1,4 @@
-M.wrap('github/jillix/file-uploader/new-uploader-dev5/uploader.js', function (require, module, exports) {
+
 var Bind = require("github/jillix/bind");
 var Events = require("github/jillix/events");
 var Ui = require("./ui");
@@ -253,6 +253,7 @@ function setData (data) {
         $form.append($container);
     }
 
+    self.formData = data;
     // add hidden inputs to container
     $container.html(buildHiddenData(data, ""));
 }
@@ -287,5 +288,3 @@ function processConfig (config) {
     config.options = config.options || {};
     config.options.acceptTypes = config.options.acceptTypes || [];
 }
-
-return module; });

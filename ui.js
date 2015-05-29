@@ -13,12 +13,15 @@ function init () {
     self.config.options.ui.upload = self.config.options.ui.upload || ".uploadBtn";
 
     // listen for internal events
-    self.on("renderUi", renderUi);
+    self.on("renderUi", prepareUi);
 
     // reset controls after upload finished
     self.on("fileUploaded", resetControls);
     self.on("uploadFailed", resetControls);
     self.on("reset", resetControls);
+
+    // add / remove upload controls if permission changes
+    self.on("rebuildUi", buildUi);
 
     self.on("getDocuments", getDocuments);
 }
@@ -45,7 +48,7 @@ function getDocuments (request, callback) {
     self.link("getDocuments", { data: request }, callback);
 }
 
-function renderUi () {
+function prepareUi () {
     var self = this;
 
     // do not render uploader controls if no configuration is present
@@ -83,20 +86,20 @@ function renderUi () {
             self.uploadTemplateCache[self.template._id] = html;
 
             // render uploaders controls
-            finishRendering.call(self);
+            buildUi.call(self);
         });
     } else {
         // render uploaders controls
-        finishRendering.call(self);
+        buildUi.call(self);
     }
 }
 
-function finishRendering () {
+function buildUi () {
     var self = this;
     self.uploaders = {};
 
     // get permissions
-    self.link("getUploadPermissions", { data: { template: self.template } }, function (err, permissions) {
+    self.link("getUploadPermissions", { data: { template: self.template, formData: self.formData } }, function (err, permissions) {
 
         if (err) {
             console.error(err);
@@ -106,11 +109,18 @@ function finishRendering () {
         for (var key in self.uploaderConfig.uploaders) {
             if (!self.uploaderConfig.uploaders[key].container) continue;
 
+            // get container
             var $container = $(self.uploaderConfig.uploaders[key].container);
-            if (permissions[key] && $container.length) {
+            if (!$container.length) continue;
+
+            // add controls to container if user is allowed, else clean it
+            if (permissions[key]) {
                 $container.html($(self.uploadTemplateCache[self.template._id]));
                 self.uploaders[key] = {};
                 self.uploaders[key].ref = $container;
+            } else {
+                $container.html("");
+                delete self.uploaders[key];
             }
         }
 
@@ -130,7 +140,7 @@ function setupControls () {
         (function (uploader) {
             self.uploaders[uploader].ref.find(self.uploaderConfig.controls.select).on("click", function () {
                 $("[type=file]", $("form", self.dom)).click();
-
+                console.log("da");
                 // slect the filename in next to the select
                 $lastUploadUsed = $(self.uploaderConfig.controls.fileName, self.uploaders[uploader].ref.has($(this)));
 
