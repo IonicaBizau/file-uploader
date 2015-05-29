@@ -140,7 +140,7 @@ function setupControls () {
         (function (uploader) {
             self.uploaders[uploader].ref.find(self.uploaderConfig.controls.select).on("click", function () {
                 $("[type=file]", $("form", self.dom)).click();
-                console.log("da");
+
                 // slect the filename in next to the select
                 $lastUploadUsed = $(self.uploaderConfig.controls.fileName, self.uploaders[uploader].ref.has($(this)));
 
