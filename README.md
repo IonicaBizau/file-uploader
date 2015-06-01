@@ -113,8 +113,9 @@ The module emits the following events:
 
 ## Change Log
 
-### dev
-- add new features and fixes here
+### v0.4.0
+- transferred the module to the new jxMono organization
+- updated Bind to `v0.4.0`, Events to `v0.4.0`
 
 ### v0.3.9
 - Clear the existing hidden inputs when `setData` is called
