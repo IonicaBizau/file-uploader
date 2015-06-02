@@ -17,9 +17,6 @@ module.exports = function(config) {
     // call ui
     Ui.call(self);
 
-    // call events
-    Events.call(self, config);
-
     // get the iframe from the module
     var $iframe = $("iframe", self.dom);
     if (!$iframe.get(0)) {
@@ -105,9 +102,6 @@ module.exports = function(config) {
         };
     });
 
-    // emit ready event
-    self.emit("ready", config);
-
     // listen to events
     self.on("setData", setData);
     self.on("setTemplate", setTemplate);
@@ -128,6 +122,12 @@ module.exports = function(config) {
             self.renderingEnabled = true;
         }
     });
+
+    // call events
+    Events.call(self, config);
+
+    // emit ready event
+    self.emit("ready", config);
 };
 
 function setTemplate (template) {
