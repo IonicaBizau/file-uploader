@@ -171,6 +171,7 @@ function handleTemplateUpload (link) {
                     uploadFileEvent: uploaderConfig.uploadFileEvent,
                     fileExt: fileExt,
                     uploadedFilePath: uploadedFilePath,
+                    dsUpload: (uploaderConfig.temporarUpload && link.params.dsTemporarUpload) ? link.params.dsTemporarUpload : link.params.dsUpload,
                     template: true
                 }, function (err, args) {
 
@@ -227,6 +228,7 @@ function handleDefaultUpload (link) {
             link: link,
             uploadFileEvent: link.params.uploadFileEvent,
             fileExt: fileExt,
+            dsUpload: link.params.dsUpload,
             uploadedFilePath: uploadedFilePath
         }, function (err, args) {
 
@@ -252,6 +254,7 @@ function handleDefaultUpload (link) {
  *      - uploadFileEvent
  *      - fileExt
  *      - uploadedFilePath
+ *      - dsUpload
  *      - template (true/false)
  *    @callback: the callback function
  * */
@@ -262,7 +265,7 @@ function finishUpload (options, callback) {
     var newFilePath = options.uploadDir + "/" + generatedId + options.fileExt;
 
     // get the collection from datasource
-    getCollection(options.link.params.dsUpload, function (err, collection) {
+    getCollection(options.dsUpload, function (err, collection) {
 
         // handle error
         if (err) { return callback({ status: 500, error: collection }); }
@@ -564,6 +567,7 @@ exports.download = function (link) {
                         // finish the download
                         finishFileDownload({
                             doc: doc,
+                            uploadDir: uploaderConfig ? link.params.uploadDir + uploaderConfig.uploadDir : link.params.uploadDir,
                             customPathHandler: uploaderConfig.customPathHandler
                         });
                     });
@@ -572,6 +576,7 @@ exports.download = function (link) {
                 // finish the download
                 finishFileDownload({
                     doc: doc,
+                    uploadDir: link.params.uploadDir,
                     customPathHandler: link.params.customPathHandler
                 });
             }
@@ -586,6 +591,7 @@ exports.download = function (link) {
             // call the handler
             M.emit(options.customPathHandler, {
                 doc: options.doc,
+                uploadDir: options.uploadDir,
                 link: link,
             }, function (path) {
 
@@ -593,7 +599,7 @@ exports.download = function (link) {
                 pipeFile(options.doc, path);
             });
         } else {
-            var path = M.app.getPath() + "/" + link.params.uploadDir + "/" + options.doc.filePath;
+            var path = M.app.getPath() + "/" + options.uploadDir + "/" + options.doc.filePath;
 
             // pipe the file
             pipeFile(options.doc, path);
@@ -686,6 +692,7 @@ exports.remove = function (link) {
                         // finish the remove operation
                         finishFileRemove({
                             removeFileEvent: link.params.removeFileEvent,
+                            uploadDir: uploaderConfig ? link.params.uploadDir + uploaderConfig.uploadDir : link.params.uploadDir,
                             doc: doc
                         });
                     });
@@ -694,6 +701,7 @@ exports.remove = function (link) {
                 // finish the remove operation
                 finishFileRemove({
                     removeFileEvent: link.params.removeFileEvent,
+                    uploadDir: link.params.uploadDir,
                     doc: doc
                 });
             }
@@ -711,7 +719,7 @@ exports.remove = function (link) {
                 if (err) { return link.send(400, err); }
 
                 // remove file
-                removeFile(link, options.doc, function (err) {
+                removeFile(link, options.doc, options.uploadDir, function (err) {
 
                     // handle error
                     if (err) {
@@ -730,7 +738,7 @@ exports.remove = function (link) {
             });
         } else {
             // remove file
-            removeFile(link, options.doc, function (err) {
+            removeFile(link, options.doc, options.uploadDir, function (err) {
 
                 // handle error
                 if (err) {
@@ -804,7 +812,7 @@ exports.remove = function (link) {
  *  This removes a document form a collection and then deletes it
  *  from the upload dir
  * */
-function removeFile (link, doc, callback) {
+function removeFile (link, doc, uploadDir, callback) {
 
     getCollection(link.params.dsUpload, function (err, collection) {
 
@@ -817,7 +825,7 @@ function removeFile (link, doc, callback) {
             // handle error
             if (err) { return callback(err); }
 
-            var path = M.app.getPath() + "/" + link.params.uploadDir + "/" + doc.filePath;
+            var path = M.app.getPath() + "/" + uploadDir + "/" + doc.filePath;
 
             // delete the item
             fs.unlink(path, function (err) {
