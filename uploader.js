@@ -1,5 +1,7 @@
+
 var Bind = require("github/jxmono/bind");
 var Events = require("github/jxmono/events");
+var Ui = require("./ui");
 
 module.exports = function(config) {
 
@@ -12,8 +14,8 @@ module.exports = function(config) {
     // process config
     processConfig(config);
 
-    // call events
-    Events.call(self, config);
+    // call ui
+    Ui.call(self);
 
     // get the iframe from the module
     var $iframe = $("iframe", self.dom);
@@ -100,13 +102,97 @@ module.exports = function(config) {
         };
     });
 
-    // emit ready event
-    self.emit("ready", config);
-
     // listen to events
     self.on("setData", setData);
+    self.on("setTemplate", setTemplate);
     self.on("removeItem", removeItem);
+
+    // handle rendering / wait for external event before rendering to fix render order of uploader containers
+    self.waitForEvent = false;
+    self.renderingEnabled = false;
+    self.on("enableRendering", function () {
+
+        if (self.waitForEvent) {
+            self.renderingEnabled = false;
+
+            if (self.template) {
+                self.emit("renderUi");
+            }
+        } else {
+            self.renderingEnabled = true;
+        }
+    });
+
+    // call events
+    Events.call(self, config);
+
+    // emit ready event
+    self.emit("ready", config);
 };
+
+function setTemplate (template) {
+    var self = this;
+
+    var template = typeof template === 'string' ? template : (template.id || template._id);
+    // check template
+    if (!template) {
+        // TODO handle error
+        return console.error('Invalid upload template');
+    }
+
+    self.emit('find', [template], function (err, templates) {
+
+        for (var key in templates) {
+            if (!templates.hasOwnProperty(key)) continue;
+
+            if (templates[key]._id === template) {
+                self.template = templates[key];
+            }
+        }
+
+        // TODO handle error
+        if (err || !self.template) {
+            return console.error(err);
+        }
+
+        // clear the hidden input template value
+        if ($(".hiddenTemplateValue", $("form", self.dom)).length) {
+            $(".hiddenTemplateValue", $("form", self.dom)).val("");
+        }
+
+        // do not render uploader controls if no configuration is present
+        if (!self.template.options || !self.template.options.uploader) { return; }
+        self.uploaderConfig = self.template.options.uploader;
+
+        // clear the renderBuffer
+        renderBuffer = [];
+
+        // add template id value to form
+        if ($(".hiddenTemplateValue", $("form", self.dom)).length) {
+            $(".hiddenTemplateValue", $("form", self.dom)).val(self.template._id);
+        } else {
+            var $input = $("<input class='hiddenTemplateValue hide' type='hidden' name='templateId'>");
+            $("form", self.dom).append($input);
+            $input.val(self.template._id);
+        }
+
+        // check if template needs to wait for an external event to begin rendering
+        if (self.uploaderConfig.waitForEvent) {
+
+            // check if render enabled by event
+            if (self.renderingEnabled) {
+                self.emit("renderUi");
+            } else {
+                self.waitForEvent = true;
+            }
+
+            self.renderingEnabled = false;
+        } else {
+            self.renderingEnabled = false;
+            self.emit("renderUi");
+        }
+    });
+}
 
 /*
  * This function makes a request to the remove operation to delete a file
@@ -167,6 +253,7 @@ function setData (data) {
         $form.append($container);
     }
 
+    self.formData = data;
     // add hidden inputs to container
     $container.html(buildHiddenData(data, ""));
 }

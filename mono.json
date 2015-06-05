@@ -4,12 +4,15 @@
     "name": "file-uploader",
     "dependencies": [
         "/uploader.js",
+        "/ui.js",
         "github/jxmono/bind/v0.4.0",
         "github/jxmono/events/v0.4.0"
     ],
     "operations": [
         { "file": "operations.js", "function": "upload" },
         { "file": "operations.js", "function": "download" },
-        { "file": "operations.js", "function": "remove" }
+        { "file": "operations.js", "function": "remove" },
+        { "file": "operations.js", "function": "getDocuments" },
+        { "file": "operations.js", "function": "getUploadPermissions" }
     ]
 }
