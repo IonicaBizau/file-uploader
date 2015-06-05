@@ -1,5 +1,5 @@
-var Bind = require("github/jillix/bind");
-var Events = require("github/jillix/events");
+var Bind = require("github/jxmono/bind");
+var Events = require("github/jxmono/events");
 
 module.exports = function(config) {
 
