@@ -9,10 +9,31 @@ The most important parameters are set in the module upload operation `params` ar
 
  - `uploadDir`: path to the directory where the file will be uploaded (**required**)
  - `dsUpload`: datasource (**required**)
+ - `dsTemporarUpload`: temporar upload datasource (**required** if `temporarUpload: true` in uploader template configuration)
  - `emitArgument`: sets the parameter that will be emited by module in `fileUploaded` event. It can take the following values: `id`, `path`, `object` or an object: `{"type": "custom", "value": "docKey"}` (`upload` operation)
  - `uploadFileEvent`: name of custom handler that gets called before the uploaded object gets inserted in the db (`upload` operation)
  - `customUpload`: name of custom handler that gets called in order to construct a custom upload path for the uploaded file (`upload` operation)
  - `customPathHandler`: name of custom handler that gets called in order to construct a custom path to a file that needs to be downloaded (`download` operation)
+
+The file-uploader module can also receive an optional template object with a template configuration (see `setTemplate` event bellow). In this case for each `setTemplate` call, the module will render all configured `uploaders` (see template configuration bellow) for the given template in the specified `container` based on user permissions.
+
+## Template configuration
+
+The most important parameters are set in the `uploader` object found in the template `options` configuration
+
+ - `uploaders`: object containing all distinct uploader configurations (a template can have multiple uploaders with diffrent configurations and permissions (upload, download, remove) all renderd by the same module instance (**required**)
+    * `[uploaderName]` the name of the uploader instance (**required**)
+        * `container` the selector used to find the container where the uploader will be rendered
+        * `uploadDir` path to the directory where the file will be uploaded (this path will be appended to the `uploadDir` value found in the module `params` array)
+        * `customUpload` name of custom handler that gets called in order to construct a custom upload path for the uploaded file (`upload` operation)
+        * `uploadFileEvent` name of custom handler that gets called before the uploaded object gets inserted in the db (`upload` operation)
+        * `temporarUpload` document will be uploaded to a temporar collection (true/false)
+        * `access` permissions string for the module operations (upload, download, remove), can be set dynamically for each user in the `crud_access.js` file ("u" - if user has uplaod permission, "d" - download permission, "r" - remove permission)
+        * `customPathHandler` name of custom handler that gets called in order to construct a custom path to a file that needs to be downloaded (`download` operation)
+        * `customPermissions` name of custom handler that returns custom permissions for the upload operations
+ - `html` the path to the html files/file for the upload controls
+ - `controls` selector configurations for the upload controls (`select`, `upload`, `fileName`)
+ - `waitForEvent` the uploader will listen for a `enableRendering` event before rendering the configured uploaders
 
 ### Example of configuration
 
@@ -61,6 +82,18 @@ The most important parameters are set in the module upload operation `params` ar
                     "removeFileEvent": "exampleHandler"
                 }
             ]
+        },
+        "getDocuments": {
+            "roles": [MONO_ROLES],
+            "params": [
+                {
+                    "dsUpload": "temporarDS"
+                }
+            ]
+        },
+        "getUploadPermissions": {
+            "roles": [MONO_ROLES],
+            "params": [{}]
         }
     }
 },
@@ -82,6 +115,30 @@ Where `temporarDS` is defined into `datasources` key from application descriptor
 }
 ```
 
+### Example of template configuration
+```Javascript
+uploader: {
+    uploaders: {
+        [UPLOADER_NAME]: {
+            container: [CSS_SELECTOR],
+            uploadDir: "path/to/upload/dir",
+            customUpload: "handlerName",
+            uploadFileEvent: "handlerName",
+            temporarUpload: true, // default false
+            access: 'urd',
+            customPermissions: "handlerName",
+            customPathHandler: "handlerName"
+        }
+    },
+    html: "path/to/htmlFile.html", // can be i18n object
+    controls: {
+        select: ".btn-upload-select",
+        upload: ".btn-upload-start",
+        fileName: ".file-name"
+    },
+    waitForEvent: true // default false
+}
+```
 ## Events
 
 The module emits the following events:
@@ -108,10 +165,65 @@ The module emits the following events:
             <td>It is emited when the file is successfully removed</td>
             <td>none</td>
         </tr>
+        <tr>
+            <td><pre>uploadersRendered</pre></td>
+            <td>It is emited when the template configured uploaders finish rendering</td>
+            <td>none</td>
+        </tr>
+    </tbody>
+</table>
+
+The module listens for the following events:
+
+<table>
+    <thead>
+        <th>Event name</th>
+        <th>Description</th>
+        <th>Parameters</th>
+    </thead>
+    <tbody>
+        <tr>
+            <td><pre>setTemplate</pre></td>
+            <td>Sets the template and renders uploaders based on the configuration found inside the template</td>
+            <td>The full template object or the template `_id` as string.</td>
+        </tr>
+        <tr>
+            <td><pre>enableRendering</pre></td>
+            <td>Starts the uploaders rendering if the `waitForEvent` is true</td>
+            <td>none</td>
+        </tr>
+        <tr>
+            <td><pre>setData</pre></td>
+            <td>Data sent will be appended to the upload form</td>
+            <td>`data` object</td>
+        </tr>
+        <tr>
+            <td><pre>reset</pre></td>
+            <td>For template uploaders only. Resets the uploader controls</td>
+            <td>none</td>
+        </tr>
+        <tr>
+            <td><pre>rebuildUi</pre></td>
+            <td>For template uploaders only. The uploader will ask again for the upload permissions and rebuild the uploaders based on the permissions that might have changed</td>
+            <td>none</td>
+        </tr>
+        <tr>
+            <td><pre>removeItem</pre></td>
+            <td>Removes the specified item from the DB and FS</td>
+            <td>An object containing the `itemId` and `uploader` (the name of the uploader instance configured in the `uploaders` field) if the document was uploaded using a template uploader</td>
+        </tr>
+        <tr>
+            <td><pre>getDocuments</pre></td>
+            <td>For template uploaders only. Returns the documents for a specified `uploader` and `template` based on the user permissions. Also returns `removeForbidden: true` if the user cannot remove the requested documents</td>
+            <td>An object containing `uploader` name and `template` object or id as string</td>
+        </tr>
     </tbody>
 </table>
 
 ## Change Log
+
+### v0.5.0
+- Added "template uploaders" functionality
 
 ### v0.4.0
 - transferred the module to the new jxMono organization
